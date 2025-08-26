@@ -18,7 +18,7 @@ import reversi.util.UndoManager
 @Suppress("unused")
 class GameController(
     private val service: GameService,
-    private val undoManagers: MutableMap<String, UndoManager> = mutableMapOf()
+    private val undoManagers: MutableMap<String, UndoManager>
 ) {
 
     @PostMapping

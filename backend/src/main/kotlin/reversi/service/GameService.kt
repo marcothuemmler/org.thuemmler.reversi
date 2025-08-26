@@ -35,7 +35,7 @@ class GameService(
 
     fun saveState(game: Game) = store.save(game)
 
-    fun makeMove(gameId: String, row: Int, col: Int): Game {
+    fun makeMove(gameId: String, row: Int, col: Int, onUpdate: ((Game) -> Unit)? = null): Game {
         var game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
 
         if (game.playerTypes[game.currentPlayer] == PlayerType.AI) {
@@ -43,10 +43,12 @@ class GameService(
         }
 
         game = applyPlayerMove(game, row, col)
+        onUpdate?.invoke(game)
 
         while (!game.isFinished && game.playerTypes[game.currentPlayer] == PlayerType.AI) {
             val aiMove = aiMove(game) ?: break
             game = applyPlayerMove(game, aiMove.first, aiMove.second)
+            onUpdate?.invoke(game)
         }
 
         return game

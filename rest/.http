@@ -22,6 +22,25 @@ Accept: application/json
 ### Make move
 POST {{host}}/games/{{gameId}}/moves
 Accept: application/json
+Content-Type: application/json
+
+{
+  "row": 2,
+  "col": 4
+}
+
+### Undo move
+POST {{host}}/games/{{gameId}}/undo
+Accept: application/json
+
+### Redo move
+POST {{host}}/games/{{gameId}}/redo
+Accept: application/json
+
+### Get move history
+GET {{host}}/games/{{gameId}}/history
+Accept: application/json
 
 ### Remove Game
 DELETE {{host}}/games/{{gameId}}
+Accept: application/json
