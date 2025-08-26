@@ -1,5 +1,8 @@
 package reversi.service
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.springframework.stereotype.Service
 import reversi.ai.AlphaBetaSelector
 import reversi.controller.dto.MoveRequest
@@ -15,7 +18,7 @@ class GameService(
 ) {
 
     private val moveSelector: MoveSelectorStrategy = AlphaBetaSelector(this)
-
+    private val aiScope = CoroutineScope(Dispatchers.Default)
     val directions = listOf(
         -1 to -1, -1 to 0, -1 to 1,
         0 to -1,          0 to 1,
@@ -45,10 +48,12 @@ class GameService(
         game = applyPlayerMove(game, row, col)
         onUpdate?.invoke(game)
 
-        while (!game.isFinished && game.playerTypes[game.currentPlayer] == PlayerType.AI) {
-            val aiMove = aiMove(game) ?: break
-            game = applyPlayerMove(game, aiMove.first, aiMove.second)
-            onUpdate?.invoke(game)
+        aiScope.launch {
+            while (!game.isFinished && game.playerTypes[game.currentPlayer] == PlayerType.AI) {
+                val aiMove = aiMove(game) ?: break
+                game = applyPlayerMove(game, aiMove.first, aiMove.second)
+                onUpdate?.invoke(game)
+            }
         }
 
         return game
@@ -163,7 +168,7 @@ class GameService(
         return !hasAnyValidMoves(board, CellState.BLACK) && !hasAnyValidMoves(board, CellState.WHITE)
     }
 
-    private fun aiMove(game: Game): Pair<Int, Int>? {
+    private suspend fun aiMove(game: Game): Pair<Int, Int>? {
         return moveSelector.selectMove(game)
     }
 }
