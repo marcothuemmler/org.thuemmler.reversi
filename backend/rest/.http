@@ -1,0 +1,27 @@
+@hostname = http://localhost
+@port = 8080
+@host = {{hostname}}:{{port}}
+@gameId = cfed83ed-5a73-4297-9000-822b4bfb32ef
+
+### Create Game
+POST {{host}}/games
+Accept: application/json
+
+### Get Game
+GET {{host}}/games/{{gameId}}
+Accept: application/json
+
+### Get list of games
+GET {{host}}/games
+Accept: application/json
+
+### Get valid moves
+GET {{host}}/games/{{gameId}}/moves
+Accept: application/json
+
+### Make move
+POST {{host}}/games/{{gameId}}/moves
+Accept: application/json
+
+### Remove Game
+DELETE {{host}}/games/{{gameId}}
