@@ -7,6 +7,7 @@ import reversi.service.GameService
 import reversi.service.MoveSelectorStrategy
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.delay
 
 class AlphaBetaSelector(
     private val gameService: GameService,
@@ -24,7 +25,9 @@ class AlphaBetaSelector(
         arrayOf(99, -8, 8, 6, 6, 8, -8, 99)
     )
 
-    override fun selectMove(game: Game): Pair<Int, Int>? {
+    override suspend fun selectMove(game: Game): Pair<Int, Int>? {
+        val startTime = System.currentTimeMillis()
+
         val validMoves = gameService.getValidMoves(game.id)
         if (validMoves.isEmpty()) return null
 
@@ -32,7 +35,6 @@ class AlphaBetaSelector(
         var bestMove: Pair<Int, Int>? = null
         var bestValue = Int.MIN_VALUE
 
-        // Order moves by weighted board to improve pruning
         val orderedMoves = validMoves.sortedByDescending { weightedBoard[it.first][it.second] }
 
         val emptyCells = game.board.size * game.board.size - game.board.grid.sumOf { row -> row.count { it != CellState.EMPTY } }
@@ -45,6 +47,12 @@ class AlphaBetaSelector(
                 bestValue = value
                 bestMove = move
             }
+        }
+
+        val elapsed = System.currentTimeMillis() - startTime
+        val remaining = 500 - elapsed
+        if (remaining > 0) {
+            delay(remaining)
         }
 
         return bestMove

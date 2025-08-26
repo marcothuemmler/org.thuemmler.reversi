@@ -13,8 +13,9 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.coroutines)
+    implementation(libs.kotlinx.serialization.json)
     developmentOnly(libs.springboot.devtools)
     implementation(libs.springboot.starter)
     implementation(libs.springboot.web)

@@ -3,5 +3,5 @@ package reversi.service
 import reversi.model.Game
 
 interface MoveSelectorStrategy {
-    fun selectMove(game: Game): Pair<Int, Int>?
+    suspend fun selectMove(game: Game): Pair<Int, Int>?
 }
