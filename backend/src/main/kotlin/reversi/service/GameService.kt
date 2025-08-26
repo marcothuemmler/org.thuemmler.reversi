@@ -1,6 +1,7 @@
 package reversi.service
 
 import org.springframework.stereotype.Service
+import reversi.ai.AlphaBetaSelector
 import reversi.controller.dto.MoveRequest
 import reversi.model.Board
 import reversi.model.CellState
@@ -9,9 +10,13 @@ import reversi.model.PlayerType
 import reversi.store.GameStore
 
 @Service
-class GameService(private val store: GameStore) {
+class GameService(
+    private val store: GameStore
+) {
 
-    private val directions = listOf(
+    private val moveSelector: MoveSelectorStrategy = AlphaBetaSelector(this)
+
+    val directions = listOf(
         -1 to -1, -1 to 0, -1 to 1,
         0 to -1,          0 to 1,
         1 to -1,  1 to 0, 1 to 1
@@ -111,7 +116,7 @@ class GameService(private val store: GameStore) {
         return Board(grid = grid)
     }
 
-    private fun getFlippableCells(
+    fun getFlippableCells(
         board: Board<CellState>,
         row: Int,
         col: Int,
@@ -146,19 +151,17 @@ class GameService(private val store: GameStore) {
         return false
     }
 
-    private fun applyMove(board: Board<CellState>, row: Int, col: Int, player: CellState, flippable: List<Pair<Int, Int>>): Board<CellState> {
+    fun applyMove(board: Board<CellState>, row: Int, col: Int, player: CellState, flippable: List<Pair<Int, Int>>): Board<CellState> {
         var newBoard = board.setCell(row, col, player)
         flippable.forEach { (r, c) -> newBoard = newBoard.setCell(r, c, player) }
         return newBoard
     }
 
-    private fun isGameFinished(board: Board<CellState>): Boolean {
+    fun isGameFinished(board: Board<CellState>): Boolean {
         return !hasAnyValidMoves(board, CellState.BLACK) && !hasAnyValidMoves(board, CellState.WHITE)
     }
 
     private fun aiMove(game: Game): Pair<Int, Int>? {
-        val validMoves = getValidMoves(game.id)
-        if (validMoves.isEmpty()) return null
-        return validMoves.random()
+        return moveSelector.selectMove(game)
     }
 }
