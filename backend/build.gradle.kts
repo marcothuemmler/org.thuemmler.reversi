@@ -18,6 +18,7 @@ dependencies {
     developmentOnly(libs.springboot.devtools)
     implementation(libs.springboot.starter)
     implementation(libs.springboot.web)
+    implementation(libs.springboot.websocket)
     testImplementation(kotlin("test"))
 }
 

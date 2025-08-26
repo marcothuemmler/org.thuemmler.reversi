@@ -7,7 +7,8 @@ class MoveCommand(
     private val gameService: GameService,
     private val gameId: String,
     private val row: Int,
-    private val col: Int
+    private val col: Int,
+    private val onUpdate: ((Game) -> Unit)? = null
 ) : Command {
 
     private var previousGame: Game? = null
@@ -15,7 +16,7 @@ class MoveCommand(
 
     override fun doStep() {
         previousGame = gameService.getGame(gameId)
-        newGame = gameService.makeMove(gameId, row, col)
+        newGame = gameService.makeMove(gameId, row, col, onUpdate)
     }
 
     override fun undoStep() {

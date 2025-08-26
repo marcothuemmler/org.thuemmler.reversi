@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 
 const gridSize = 8
+const socket = ref<WebSocket | null>(null)
 
 const gameId = ref<string | null>(null)
 const currentPlayer = ref<string | null>(null)
@@ -36,6 +37,7 @@ async function createGame() {
   renderBoard(game.board.grid, true)
   await fetchValidMoves()
   highlightedCells.value.clear()
+  setupWebSocket()
 }
 
 async function fetchValidMoves() {
@@ -45,9 +47,41 @@ async function fetchValidMoves() {
   validMoves.value = moves.map((m: any) => `${m.row}-${m.col}`)
 }
 
+function setupWebSocket() {
+  if (!gameId.value) return
+
+  if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+    socket.value.close()
+  }
+
+  socket.value = new WebSocket(`ws://${window.location.host}/ws/games?gameId=${gameId.value}`)
+
+  socket.value.onopen = () => console.log('WebSocket connected')
+  socket.value.onerror = (err) => console.error('WebSocket error', err)
+  socket.value.onclose = () => console.log('WebSocket closed')
+
+  socket.value.onmessage = (event) => {
+    playSound()
+    try {
+      const game = JSON.parse(event.data)
+      currentPlayer.value = game.currentPlayer
+      isFinished.value = game.isFinished
+      validMoves.value = game.validMoves?.map((m: any) => `${m.row}-${m.col}`)
+      renderBoard(game.board.grid)
+    } catch (err) {
+      console.error('Failed to parse WebSocket message', err)
+    }
+  }
+}
+
 function highlightCells() {
-  highlightedCells.value.clear()
-  validMoves.value.forEach((move) => highlightedCells.value.add(move))
+  validMoves.value.forEach((move) => {
+    if (highlightedCells.value.has(move)) {
+      highlightedCells.value.delete(move)
+    } else {
+      highlightedCells.value.add(move)
+    }
+  })
 }
 
 function renderBoard(grid: string[][], init = false) {
@@ -90,19 +124,9 @@ async function makeMove(row: number, col: number) {
     return
   }
 
-  const res = await fetch(`/games/${gameId.value}/moves`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ row, col }),
-  })
-  const game = await res.json()
-
-  isFinished.value = game.isFinished
-  currentPlayer.value = game.currentPlayer
-
-  renderBoard(game.board.grid)
-  await fetchValidMoves()
-  playSound()
+  if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+    socket.value.send(JSON.stringify({ row, col }))
+  }
   highlightedCells.value.clear()
 }
 

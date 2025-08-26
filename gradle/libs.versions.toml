@@ -9,6 +9,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-s
 springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
 springboot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
 springboot-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
+springboot-websocket = { group = "org.springframework.boot", name = "spring-boot-starter-websocket", version.ref = "spring" }
 
 [plugins]
 springboot = { id = "org.springframework.boot", version.ref = "spring" }
