@@ -1,0 +1,15 @@
+[versions]
+spring = "3.5.5"
+serialization = "1.9.0"
+spring-dependency = "1.1.7"
+
+[libraries]
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-serialization-json", version.ref = "serialization" }
+springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
+springboot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
+springboot-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
+
+[plugins]
+springboot = { id = "org.springframework.boot", version.ref = "spring" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency" }
