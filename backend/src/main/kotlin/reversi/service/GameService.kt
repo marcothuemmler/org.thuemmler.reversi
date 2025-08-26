@@ -28,6 +28,8 @@ class GameService(private val store: GameStore) {
 
     fun removeGame(id: String) = store.removeGame(id)
 
+    fun saveState(game: Game) = store.save(game)
+
     fun makeMove(gameId: String, row: Int, col: Int): Game {
         var game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
 

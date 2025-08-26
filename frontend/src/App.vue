@@ -106,6 +106,30 @@ async function makeMove(row: number, col: number) {
   highlightedCells.value.clear()
 }
 
+async function undoMove() {
+  if (!gameId.value) return
+  const res = await fetch(`/games/${gameId.value}/undo`, { method: 'POST' })
+  if (!res.ok) return
+  const game = await res.json()
+
+  isFinished.value = game.isFinished
+  currentPlayer.value = game.currentPlayer
+  renderBoard(game.board.grid)
+  await fetchValidMoves()
+}
+
+async function redoMove() {
+  if (!gameId.value) return
+  const res = await fetch(`/games/${gameId.value}/redo`, { method: 'POST' })
+  if (!res.ok) return
+  const game = await res.json()
+
+  isFinished.value = game.isFinished
+  currentPlayer.value = game.currentPlayer
+  renderBoard(game.board.grid)
+  await fetchValidMoves()
+}
+
 function cellClass(i: number, j: number) {
   const key = `${i}-${j}`
   return {
@@ -132,6 +156,8 @@ onMounted(() => {
     <h1>Reversi</h1>
     <button @click="createGame">New Game</button>
     <button @click="highlightCells">Highlight Valid Moves</button>
+    <button @click="undoMove">Undo</button>
+    <button @click="redoMove">Redo</button>
     <p>Black: {{ blackCount }} | White: {{ whiteCount }}</p>
     <div id="board" :style="{ gridTemplateColumns: `repeat(${gridSize}, 50px)` }">
       <div
