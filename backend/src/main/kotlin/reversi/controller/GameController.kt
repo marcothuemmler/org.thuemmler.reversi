@@ -10,11 +10,16 @@ import org.springframework.web.bind.annotation.RestController
 import reversi.controller.dto.MoveRequest
 import reversi.model.Game
 import reversi.service.GameService
+import reversi.util.MoveCommand
+import reversi.util.UndoManager
 
 @RestController
 @RequestMapping("/games")
 @Suppress("unused")
-class GameController(private val service: GameService) {
+class GameController(
+    private val service: GameService,
+    private val undoManagers: MutableMap<String, UndoManager> = mutableMapOf()
+) {
 
     @PostMapping
     fun createGame(): Game = service.createGame()
@@ -29,12 +34,30 @@ class GameController(private val service: GameService) {
 
     @DeleteMapping("/{id}")
     fun removeGame(@PathVariable id: String) {
+        undoManagers.remove(id)
         service.removeGame(id)
     }
 
     @PostMapping("/{id}/moves")
     fun makeMove(@PathVariable id: String, @RequestBody move: MoveRequest): Game {
-        return service.makeMove(id, move.row, move.col)
+        val undoManager = undoManagers.getOrPut(id) { UndoManager() }
+        val command = MoveCommand(service, id, move.row, move.col)
+        undoManager.doStep(command)
+        return service.getGame(id) ?: throw NoSuchElementException("Game not found: $id")
+    }
+
+    @PostMapping("/{id}/undo")
+    fun undoMove(@PathVariable id: String): Game {
+        val undoManager = undoManagers[id] ?: throw IllegalStateException("No moves to undo")
+        undoManager.undoStep()
+        return service.getGame(id)  ?: throw NoSuchElementException("Game not found: $id")
+    }
+
+    @PostMapping("/{id}/redo")
+    fun redoMove(@PathVariable id: String): Game {
+        val undoManager = undoManagers[id] ?: throw IllegalStateException("No moves to redo")
+        undoManager.redoStep()
+        return service.getGame(id) ?: throw NoSuchElementException("Game not found: $id")
     }
 
     @GetMapping("/{id}/moves")
