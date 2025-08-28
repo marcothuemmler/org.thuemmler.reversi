@@ -1,12 +1,16 @@
 # Reversi
 
-A simple web-based Reversi (Othello) game built with Vue.js frontend and Kotlin/Spring Boot backend. Designed for fun, learning, and experimentation.
+A web-based Reversi (Othello) game built with **Vue.js** frontend and **Kotlin/Spring Boot** backend. Designed for fun, learning, and experimentation, supporting both AI and multiplayer games.
+
+---
 
 ## Tech Stack
 
 * **Frontend:** Vue 3, TypeScript, Nginx for static hosting
-* **Backend:** Kotlin, Spring Boot, REST API
+* **Backend:** Kotlin, Spring Boot, REST API (for testing), WebSocket (for real-time gameplay)
 * **Build & Deployment:** Docker, Docker Compose
+
+---
 
 ## Quick Start
 
@@ -24,7 +28,7 @@ Open the game in your browser:
 http://localhost:3000
 ```
 
-API requests from the frontend are automatically proxied to the backend running on port `8080`.
+Frontend API requests are automatically proxied to the backend (`localhost:8080`).
 
 ---
 
@@ -60,14 +64,72 @@ cd backend
 
 ---
 
-## Backend API Endpoints
+## Backend API (Testing Only)
 
-* `POST /games` – Start a new game
-* `GET /games` – Get a list of games
-* `GET /games/{gameId}` – Get a game by ID
-* `POST /games/{gameId}/moves` – Make a move
-* `GET /games/{gameId}/moves` – Fetch valid moves
-* `DELETE /games/{gameId}` – Delete a game
+> The frontend primarily uses WebSocket for real-time gameplay. REST endpoints exist mainly for testing.
+
+| Method | Endpoint                | Description                 |
+| ------ | ----------------------- | --------------------------- |
+| POST   | `/games`                | Start a new game            |
+| GET    | `/games`                | List existing games         |
+| GET    | `/games/{gameId}`       | Get a game by ID            |
+| POST   | `/games/{gameId}/moves` | Make a move                 |
+| GET    | `/games/{gameId}/moves` | Fetch valid moves           |
+| POST   | `/games/{gameId}/undo`  | Undo last move              |
+| POST   | `/games/{gameId}/redo`  | Redo previously undone move |
+| DELETE | `/games/{gameId}`       | Delete a game               |
+
+---
+
+## WebSocket (Real-Time Gameplay)
+
+The game uses WebSocket for **live board updates, moves, and game events**.
+
+**Connection URL:**
+
+```
+ws://localhost:8080/ws/games
+```
+
+**Message Types:**
+
+| Type       | Description                                             |
+| ---------- | ------------------------------------------------------- |
+| CREATE     | Client requests a new game                              |
+| JOIN       | Client joins an existing game                           |
+| MAKE\_MOVE | Player makes a move; server responds with updated board |
+| UNDO       | Undo last move                                          |
+| REDO       | Redo previously undone move                             |
+
+**Notes:**
+
+* Messages are JSON objects with `type`, optional `gameId`, and `payload`.
+* `{gameId}` is required for joining or making moves in an existing game.
+* `playerTypes` determine AI vs Multiplayer mode:
+
+    * `{ "BLACK": "HUMAN", "WHITE": "AI" }` → Single-player against AI
+    * `{ "BLACK": "HUMAN", "WHITE": "HUMAN" }` → Multiplayer
+* Example JSON for a move:
+
+```json
+{
+  "type": "MAKE_MOVE",
+  "gameId": "1234-abcd",
+  "payload": { "row": 2, "col": 3 }
+}
+```
+
+* Example JSON for creating a new game:
+
+```json
+{
+  "type": "CREATE",
+  "payload": {
+    "playerTypes": { "BLACK": "HUMAN", "WHITE": "AI" },
+    "currentPlayer": "BLACK"
+  }
+}
+```
 
 ---
 
