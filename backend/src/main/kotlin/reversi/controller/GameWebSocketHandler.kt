@@ -20,6 +20,12 @@ class GameWebSocketHandler(
     private val sessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>()
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
+    init {
+        gameService.eventPublisher.subscribe { game ->
+            broadcastGameUpdate(game)
+        }
+    }
+
     override fun afterConnectionEstablished(session: WebSocketSession) {
         val gameId = session.uri?.query?.substringAfter("gameId=") ?: return
         undoManagers.getOrPut(gameId) { UndoManager() }
@@ -27,21 +33,18 @@ class GameWebSocketHandler(
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-        val gameId = session.uri?.query?.substringAfter("gameId=") ?: return
-        val undoManager = undoManagers.getOrPut(gameId) { UndoManager() }
-        val moveRequest = json.decodeFromString<MoveRequest>(message.payload)
-        val command = MoveCommand(gameService, gameId, moveRequest.row, moveRequest.col) { updatedGame ->
-            val gameWithValidMoves = updatedGame.copy(
-                validMoves = gameService.getValidMoves(gameId).map { MoveRequest(it.first, it.second) }
-            )
-            broadcastGameUpdate(gameId, gameWithValidMoves)
-        }
-        undoManager.doStep(command)
+        try {
+            val gameId = session.uri?.query?.substringAfter("gameId=") ?: return
+            val undoManager = undoManagers.getOrPut(gameId) { UndoManager() }
+            val moveRequest = json.decodeFromString<MoveRequest>(message.payload)
+            val command = MoveCommand(gameService, gameId, moveRequest.row, moveRequest.col)
+            undoManager.doStep(command)
+        } catch (_: Exception) { }
     }
 
-    private fun broadcastGameUpdate(gameId: String, game: Game) {
+    private fun broadcastGameUpdate(game: Game) {
         val payload = json.encodeToString(Game.serializer(), game)
-        sessions[gameId]?.forEach { session ->
+        sessions[game.id]?.forEach { session ->
             if (session.isOpen) session.sendMessage(TextMessage(payload))
         }
     }

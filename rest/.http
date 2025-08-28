@@ -6,6 +6,12 @@
 ### Create Game
 POST {{host}}/games
 Accept: application/json
+Content-Type: application/json
+
+{
+    "playerTypes": { "BLACK": "HUMAN", "WHITE": "AI" },
+    "currentPlayer": "BLACK"
+}
 
 ### Get Game
 GET {{host}}/games/{{gameId}}
@@ -19,7 +25,7 @@ Accept: application/json
 GET {{host}}/games/{{gameId}}/moves
 Accept: application/json
 
-### Make move
+### Make move (test only, client uses WebSocket)
 POST {{host}}/games/{{gameId}}/moves
 Accept: application/json
 Content-Type: application/json
@@ -35,10 +41,6 @@ Accept: application/json
 
 ### Redo move
 POST {{host}}/games/{{gameId}}/redo
-Accept: application/json
-
-### Get move history
-GET {{host}}/games/{{gameId}}/history
 Accept: application/json
 
 ### Remove Game

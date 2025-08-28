@@ -4,14 +4,13 @@ import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.Game
 import reversi.service.GameService
-import reversi.service.MoveSelectorStrategy
 import kotlin.math.max
 import kotlin.math.min
-import kotlinx.coroutines.delay
+import reversi.util.BoardUtil
 
 class AlphaBetaSelector(
     private val gameService: GameService,
-    private val baseDepth: Int = 1
+    private val baseDepth: Int = 2
 ) : MoveSelectorStrategy {
 
     private val weightedBoard = arrayOf(
@@ -25,9 +24,7 @@ class AlphaBetaSelector(
         arrayOf(99, -8, 8, 6, 6, 8, -8, 99)
     )
 
-    override suspend fun selectMove(game: Game): Pair<Int, Int>? {
-        val startTime = System.currentTimeMillis()
-
+    override fun selectMove(game: Game): Pair<Int, Int>? {
         val validMoves = gameService.getValidMoves(game.id)
         if (validMoves.isEmpty()) return null
 
@@ -47,12 +44,6 @@ class AlphaBetaSelector(
                 bestValue = value
                 bestMove = move
             }
-        }
-
-        val elapsed = System.currentTimeMillis() - startTime
-        val remaining = 500 - elapsed
-        if (remaining > 0) {
-            delay(remaining)
         }
 
         return bestMove
@@ -138,7 +129,7 @@ class AlphaBetaSelector(
         return buildList {
             for (row in 0 until board.size) {
                 for (col in 0 until board.size) {
-                    val flips = gameService.directions.flatMap { (dx, dy) ->
+                    val flips = BoardUtil.directions.flatMap { (dx, dy) ->
                         gameService.getFlippableCells(board, row, col, player, dx, dy)
                     }
                     if (board.getCell(row, col) == CellState.EMPTY && flips.isNotEmpty()) add(row to col)
@@ -148,7 +139,7 @@ class AlphaBetaSelector(
     }
 
     private fun simulateMove(board: Board<CellState>, player: CellState, move: Pair<Int, Int>): Board<CellState> {
-        val flippable = gameService.directions.flatMap { (dx, dy) ->
+        val flippable = BoardUtil.directions.flatMap { (dx, dy) ->
             gameService.getFlippableCells(board, move.first, move.second, player, dx, dy)
         }
         return gameService.applyMove(board, move.first, move.second, player, flippable)
