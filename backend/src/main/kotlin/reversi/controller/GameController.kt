@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import reversi.controller.dto.MoveRequest
+import reversi.controller.dto.NewGameRequest
 import reversi.model.Game
 import reversi.service.GameService
 import reversi.util.MoveCommand
@@ -22,7 +23,7 @@ class GameController(
 ) {
 
     @PostMapping
-    fun createGame(): Game = service.createGame()
+    fun createGame(@RequestBody game: NewGameRequest): Game = service.createGame(game)
 
     @GetMapping
     fun listGames(): List<Game> = service.listGames()

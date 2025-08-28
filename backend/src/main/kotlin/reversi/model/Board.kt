@@ -1,11 +1,9 @@
 package reversi.model
 
 import kotlinx.serialization.Serializable
-import java.util.UUID
 
 @Serializable
 data class Board<T>(
-    val id: String = UUID.randomUUID().toString(),
     val size: Int = 8,
     val grid: List<List<T>>
 ) {

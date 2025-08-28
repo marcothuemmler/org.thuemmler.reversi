@@ -1,33 +1,50 @@
 package reversi.service
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.asCoroutineDispatcher
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
-import reversi.ai.AlphaBetaSelector
+import reversi.ai.MoveSelectorStrategy
 import reversi.controller.dto.MoveRequest
+import reversi.controller.dto.NewGameRequest
 import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.Game
 import reversi.model.PlayerType
 import reversi.store.GameStore
+import reversi.util.BoardFactory
+import reversi.util.BoardUtil
+import java.util.UUID
+import java.util.concurrent.Executors
 
 @Service
 class GameService(
-    private val store: GameStore
+    private val store: GameStore,
+    val eventPublisher: GameEventPublisher = GameEventPublisher(),
+    @param:Lazy private val moveSelector: MoveSelectorStrategy
 ) {
 
-    private val moveSelector: MoveSelectorStrategy = AlphaBetaSelector(this)
-    private val aiScope = CoroutineScope(Dispatchers.Default)
-    val directions = listOf(
-        -1 to -1, -1 to 0, -1 to 1,
-        0 to -1,          0 to 1,
-        1 to -1,  1 to 0, 1 to 1
-    )
+    private val aiDispatcher = Executors.newFixedThreadPool(10).asCoroutineDispatcher()
 
-    fun createGame(): Game {
-        val game = Game(board = createStartingCellStateBoard())
-        return store.save(game)
+    fun createGame(game: NewGameRequest): Game {
+        val board = BoardFactory.createStartingBoard()
+        val createdGame = Game(
+            id = game.id ?: UUID.randomUUID().toString(),
+            board = board,
+            playerTypes = game.playerTypes,
+            currentPlayer = game.currentPlayer,
+            validMoves = calculateValidMoves(board, game.currentPlayer).map { MoveRequest(it.first, it.second) }
+        )
+        val savedGame = saveState(createdGame)
+        eventPublisher.notify(savedGame)
+
+        if (savedGame.playerTypes[savedGame.currentPlayer] == PlayerType.AI) {
+            handleAiTurn(savedGame)
+        }
+
+        return savedGame
     }
 
     fun listGames(): List<Game> = store.listGames()
@@ -38,7 +55,7 @@ class GameService(
 
     fun saveState(game: Game) = store.save(game)
 
-    fun makeMove(gameId: String, row: Int, col: Int, onUpdate: ((Game) -> Unit)? = null): Game {
+    fun makeMove(gameId: String, row: Int, col: Int): Game {
         var game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
 
         if (game.playerTypes[game.currentPlayer] == PlayerType.AI) {
@@ -46,21 +63,23 @@ class GameService(
         }
 
         game = applyPlayerMove(game, row, col)
-        onUpdate?.invoke(game)
 
-        aiScope.launch {
-            while (!game.isFinished && game.playerTypes[game.currentPlayer] == PlayerType.AI) {
-                val aiMove = aiMove(game) ?: break
-                game = applyPlayerMove(game, aiMove.first, aiMove.second)
-                onUpdate?.invoke(game)
-            }
+        val newGame = handleAiTurn(game)
+        return newGame
+    }
+
+    private fun handleAiTurn(game: Game): Game = runBlocking(aiDispatcher) {
+        var currentGame = game
+        while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
+            val aiMove = moveSelector.selectMove(currentGame) ?: break
+            delay(500)
+            currentGame = applyPlayerMove(currentGame, aiMove.first, aiMove.second)
         }
-
-        return game
+        currentGame
     }
 
     private fun applyPlayerMove(game: Game, row: Int, col: Int): Game {
-        val allFlippable = directions.flatMap { (dx, dy) ->
+        val allFlippable = BoardUtil.directions.flatMap { (dx, dy) ->
             getFlippableCells(game.board, row, col, game.currentPlayer, dx, dy)
         }
 
@@ -79,25 +98,28 @@ class GameService(
         val updatedGame = game.copy(
             board = newBoard,
             currentPlayer = nextPlayer,
-            validMoves = getValidMoves(game.id).map { MoveRequest(it.first, it.second) },
+            validMoves = calculateValidMoves(newBoard, nextPlayer).map { MoveRequest(it.first, it.second) },
             isFinished = finished
         )
 
-        return store.save(updatedGame)
+        val saved = saveState(updatedGame)
+        eventPublisher.notify(saved)
+        return saved
     }
-
 
     fun getValidMoves(gameId: String): List<Pair<Int, Int>> {
         val game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
-        val player = game.currentPlayer
+        return calculateValidMoves(game.board, game.currentPlayer)
+    }
 
+    private fun calculateValidMoves(board: Board<CellState>, player: CellState): List<Pair<Int, Int>> {
         return buildList {
-            for (row in 0 until game.board.size) {
-                for (col in 0 until game.board.size) {
-                    val flippable = directions.flatMap { (dx, dy) ->
-                        getFlippableCells(game.board, row, col, player, dx, dy)
+            for (row in 0 until board.size) {
+                for (col in 0 until board.size) {
+                    val flippable = BoardUtil.directions.flatMap { (dx, dy) ->
+                        getFlippableCells(board, row, col, player, dx, dy)
                     }
-                    if (game.board.getCell(row, col) == CellState.EMPTY && flippable.isNotEmpty()) {
+                    if (board.getCell(row, col) == CellState.EMPTY && flippable.isNotEmpty()) {
                         add(row to col)
                     }
                 }
@@ -107,21 +129,6 @@ class GameService(
 
     private fun switchPlayer(currentPlayer: CellState) =
         if (currentPlayer == CellState.BLACK) CellState.WHITE else CellState.BLACK
-
-    private fun createStartingCellStateBoard(): Board<CellState> {
-        val size = 8
-        val mid = size / 2
-        val grid = List(size) { i ->
-            List(size) { j ->
-                when {
-                    (i == mid && j == mid) || (i == mid - 1 && j == mid - 1) -> CellState.BLACK
-                    (i == mid && j == mid - 1) || (i == mid - 1 && j == mid) -> CellState.WHITE
-                    else -> CellState.EMPTY
-                }
-            }
-        }
-        return Board(grid = grid)
-    }
 
     fun getFlippableCells(
         board: Board<CellState>,
@@ -151,7 +158,7 @@ class GameService(
         for (row in 0 until board.size) {
             for (col in 0 until board.size) {
                 if (board.getCell(row, col) == CellState.EMPTY &&
-                    directions.any { (dx, dy) -> getFlippableCells(board, row, col, player, dx, dy).isNotEmpty() }
+                    BoardUtil.directions.any { (dx, dy) -> getFlippableCells(board, row, col, player, dx, dy).isNotEmpty() }
                 ) return true
             }
         }
@@ -159,16 +166,17 @@ class GameService(
     }
 
     fun applyMove(board: Board<CellState>, row: Int, col: Int, player: CellState, flippable: List<Pair<Int, Int>>): Board<CellState> {
-        var newBoard = board.setCell(row, col, player)
-        flippable.forEach { (r, c) -> newBoard = newBoard.setCell(r, c, player) }
-        return newBoard
+        return flippable.fold(board.setCell(row, col, player)) { b, (r, c) ->
+            b.setCell(r, c, player)
+        }
     }
 
     fun isGameFinished(board: Board<CellState>): Boolean {
         return !hasAnyValidMoves(board, CellState.BLACK) && !hasAnyValidMoves(board, CellState.WHITE)
     }
 
-    private suspend fun aiMove(game: Game): Pair<Int, Int>? {
-        return moveSelector.selectMove(game)
-    }
+    @PreDestroy
+    @Suppress("unused")
+    fun shutdownAI() = aiDispatcher.close()
+
 }
