@@ -38,7 +38,6 @@ class GameService(
             validMoves = calculateValidMoves(board, game.currentPlayer).map { MoveRequest(it.first, it.second) }
         )
         val savedGame = saveState(createdGame)
-        eventPublisher.notify(savedGame)
 
         if (savedGame.playerTypes[savedGame.currentPlayer] == PlayerType.AI) {
             handleAiTurn(savedGame)
@@ -53,7 +52,11 @@ class GameService(
 
     fun removeGame(id: String) = store.removeGame(id)
 
-    fun saveState(game: Game) = store.save(game)
+    fun saveState(game: Game): Game {
+        val savedGame = store.save(game)
+        eventPublisher.notify(savedGame)
+        return savedGame
+    }
 
     fun makeMove(gameId: String, row: Int, col: Int): Game {
         var game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
@@ -102,9 +105,7 @@ class GameService(
             isFinished = finished
         )
 
-        val saved = saveState(updatedGame)
-        eventPublisher.notify(saved)
-        return saved
+        return saveState(updatedGame)
     }
 
     fun getValidMoves(gameId: String): List<Pair<Int, Int>> {
