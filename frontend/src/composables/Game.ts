@@ -1,45 +1,15 @@
 import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter, type HistoryState } from 'vue-router'
 import clickSound from '../assets/click.mp3'
-
-type PlayerType = 'HUMAN' | 'AI'
-type Player = 'BLACK' | 'WHITE'
-type CellState = Player | 'EMPTY'
-
-interface Move {
-  row: number
-  col: number
-}
-
-interface GameState {
-  id: string
-  currentPlayer: Player
-  isFinished: boolean
-  board: { grid: CellState[][] }
-  validMoves: Move[]
-}
-
-interface ServerMessage<T> {
-  type: string
-  gameId?: string
-  payload: T
-}
-
-interface PlayerTypes {
-  BLACK: PlayerType
-  WHITE: PlayerType
-}
-
-interface NewGameRequest {
-  id?: string
-  playerTypes: PlayerTypes
-  currentPlayer: Player
-}
+import type { CellState, GameState, Move, NewGameRequest, Player, PlayerTypes } from '@/types/game'
+import { ClientMessage, type ServerMessage } from '@/types/server'
+import { useWebSocket } from './WebSocket'
+import { getWebSocketUrl } from '@/utils/websocket'
 
 export function useGame() {
+
   const centerOffset = 'translate(-50%, -50%)'
   const gridSize = 8
-  const socket = ref<WebSocket | null>(null)
   const gameState = ref<GameState | null>(null)
   const currentPlayer = ref<Player | null>(null)
   const validMoves = ref<Move[]>([])
@@ -65,6 +35,8 @@ export function useGame() {
     board.reduce((acc, row) => acc + row.filter((cell) => cell === 'WHITE').length, 0),
   )
 
+  const socket = useWebSocket(getWebSocketUrl('games'), onMessage, onOpen)
+
   onMounted(() => {
     const state = window.history.state
     const query = router.currentRoute.value.query
@@ -72,10 +44,11 @@ export function useGame() {
       sessionConfig.value.id = query.id as string
     }
     sessionConfig.value.playerTypes = playerTypesFromState(state)
-    setupWebSocket(!query.id)
+
+    socket.connect(!query.id)
   })
 
-  onUnmounted(() => socket.value?.close())
+  onUnmounted(() => socket?.close())
 
   function playSound() {
     const audio = clickAudio.cloneNode(true) as HTMLAudioElement
@@ -83,58 +56,47 @@ export function useGame() {
     audio.play().catch(console.error)
   }
 
-  async function createGame(newGame?: NewGameRequest) {
+  function createGame(newGame?: NewGameRequest) {
     const payload = newGame ?? sessionConfig.value
-    socket.value?.send(JSON.stringify({ payload, type: 'CREATE' }))
+    socket.send(ClientMessage.create('CREATE').withPayload(payload).asString())
   }
 
-  async function joinGame(id?: string) {
-    socket.value?.send(JSON.stringify({ gameId: id, type: 'JOIN' }))
+  function joinGame(id?: string) {
+    socket.send(ClientMessage.create('JOIN').withGameId(id).asString())
   }
 
-  function setupWebSocket(createOnEnter: boolean) {
-    if (socket.value) return
-
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-
-    socket.value = new WebSocket(`${protocol}://${window.location.host}/ws/games`)
-
-    socket.value.onopen = () => {
-      console.log('WebSocket connected')
-      if (createOnEnter) {
-        createGame()
-      } else {
-        joinGame(sessionConfig.value.id)
-      }
-    }
-    socket.value.onerror = (err) => console.error('WebSocket error', err)
-    socket.value.onclose = () => console.log('WebSocket closed')
-
-    socket.value.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data)
-        const type = message.type
-        switch (type) {
-          case 'CREATE': {
-            router.replace({ path: '/game', query: { id: message.payload.id } })
-            updateBoard(message)
-            break
-          }
-          case 'MAKE_MOVE': {
-            playSound()
-            updateBoard(message)
-            break
-          }
-          case 'JOIN':
-          case 'UNDO':
-          case 'REDO': {
-            updateBoard(message)
-            break
-          }
+  function onMessage(event: MessageEvent<string>) {
+    try {
+      const message: ServerMessage<GameState> = JSON.parse(event.data)
+      const type = message.type
+      switch (type) {
+        case 'CREATE': {
+          router.replace({ path: '/game', query: { id: message.payload.id } })
+          updateBoard(message)
+          break
         }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message', err)
+        case 'MAKE_MOVE': {
+          playSound()
+          updateBoard(message)
+          break
+        }
+        case 'JOIN':
+        case 'UNDO':
+        case 'REDO': {
+          updateBoard(message)
+          break
+        }
       }
+    } catch (err) {
+      console.error('Failed to parse WebSocket message', err)
+    }
+  }
+
+  function onOpen(createOnEnter?: boolean) {
+    if (createOnEnter) {
+      createGame()
+    } else {
+      joinGame(sessionConfig.value.id)
     }
   }
 
@@ -166,17 +128,19 @@ export function useGame() {
     grid.forEach((row, i) => row.forEach((cell, j) => (board[i][j] = cell)))
   }
 
-  async function makeMove(row: number, col: number) {
+  function makeMove(row: number, col: number) {
     if (isFinished.value) {
       createGame()
+      return
     }
 
     const isValid = validMoves.value.some((m) => m.row === row && m.col === col)
     if (!isValid) return
 
-    socket.value?.send(
-      JSON.stringify({ gameId: gameState.value?.id, payload: { row, col }, type: 'MAKE_MOVE' }),
-    )
+    const move = { row, col }
+    const id = gameState.value?.id
+    const message = ClientMessage.create('MAKE_MOVE').withPayload(move).withGameId(id).asString()
+    socket.send(message)
   }
 
   function cellClass(i: number, j: number) {
@@ -195,10 +159,11 @@ export function useGame() {
   }
 
   function undoMove() {
-    socket.value?.send(JSON.stringify({ gameId: gameState.value?.id, type: 'UNDO' }))
+    socket.send(ClientMessage.create('UNDO').withGameId(gameState.value?.id).asString())
   }
+
   function redoMove() {
-    socket.value?.send(JSON.stringify({ gameId: gameState.value?.id, type: 'REDO' }))
+    socket.send(ClientMessage.create('REDO').withGameId(gameState.value?.id).asString())
   }
 
   return {
