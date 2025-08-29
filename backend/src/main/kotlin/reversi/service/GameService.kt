@@ -16,6 +16,7 @@ import reversi.model.PlayerType
 import reversi.store.GameStore
 import reversi.util.BoardFactory
 import reversi.util.BoardUtil
+import reversi.websocket.dto.MessageType
 import java.util.UUID
 import java.util.concurrent.Executors
 
@@ -37,10 +38,10 @@ class GameService(
             currentPlayer = game.currentPlayer,
             validMoves = calculateValidMoves(board, game.currentPlayer).map { MoveRequest(it.first, it.second) }
         )
-        val savedGame = saveState(createdGame)
+        var savedGame = saveState(createdGame, MessageType.CREATE)
 
         if (savedGame.playerTypes[savedGame.currentPlayer] == PlayerType.AI) {
-            handleAiTurn(savedGame)
+            savedGame = handleAiTurn(savedGame)
         }
 
         return savedGame
@@ -52,9 +53,9 @@ class GameService(
 
     fun removeGame(id: String) = store.removeGame(id)
 
-    fun saveState(game: Game): Game {
+    fun saveState(game: Game, messageType: MessageType): Game {
         val savedGame = store.save(game)
-        eventPublisher.notify(savedGame)
+        eventPublisher.notify(savedGame, messageType)
         return savedGame
     }
 
@@ -105,7 +106,7 @@ class GameService(
             isFinished = finished
         )
 
-        return saveState(updatedGame)
+        return saveState(updatedGame, MessageType.MAKE_MOVE)
     }
 
     fun getValidMoves(gameId: String): List<Pair<Int, Int>> {

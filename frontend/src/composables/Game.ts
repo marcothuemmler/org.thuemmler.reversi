@@ -112,20 +112,23 @@ export function useGame() {
 
     socket.value.onmessage = (event) => {
       try {
-        const game = JSON.parse(event.data)
-        const type = game.type
+        const message = JSON.parse(event.data)
+        const type = message.type
         switch (type) {
           case 'CREATE': {
-            updateBoard(game)
+            router.replace({ path: '/game', query: { id: message.payload.id } })
+            updateBoard(message)
             break
           }
           case 'MAKE_MOVE': {
             playSound()
-            updateBoard(game)
+            updateBoard(message)
             break
           }
-          case 'JOIN': {
-            updateBoard(game)
+          case 'JOIN':
+          case 'UNDO':
+          case 'REDO': {
+            updateBoard(message)
             break
           }
         }
@@ -135,16 +138,15 @@ export function useGame() {
     }
   }
 
-  function updateBoard(game: ServerMessage<GameState>) {
-    gameState.value = game.payload
-    currentPlayer.value = game.payload.currentPlayer
-    isFinished.value = game.payload.isFinished
-    validMoves.value = game.payload.validMoves
-    sessionConfig.value.id = game.payload.id
+  function updateBoard(message: ServerMessage<GameState>) {
+    highlightedCells.value.clear()
+    gameState.value = message.payload
+    currentPlayer.value = message.payload.currentPlayer
+    isFinished.value = message.payload.isFinished
+    validMoves.value = message.payload.validMoves
+    sessionConfig.value.id = message.payload.id
 
-    router.replace({ path: '/game', query: { id: game.payload.id } })
-
-    renderBoard(game.payload.board.grid)
+    renderBoard(message.payload.board.grid)
   }
 
   function toggleValidMoves() {
@@ -153,9 +155,11 @@ export function useGame() {
 
   function toggleCell(move: Move) {
     const moveString = `${move.row}-${move.col}`
-    const set = new Set(highlightedCells.value)
-    set.has(moveString) ? set.delete(moveString) : set.add(moveString)
-    highlightedCells.value = set
+    if (highlightedCells.value.has(moveString)) {
+      highlightedCells.value.delete(moveString)
+    } else {
+      highlightedCells.value.add(moveString)
+    }
   }
 
   function renderBoard(grid: CellState[][]) {
@@ -173,7 +177,6 @@ export function useGame() {
     socket.value?.send(
       JSON.stringify({ gameId: gameState.value?.id, payload: { row, col }, type: 'MAKE_MOVE' }),
     )
-    highlightedCells.value.clear()
   }
 
   function cellClass(i: number, j: number) {
@@ -193,11 +196,9 @@ export function useGame() {
 
   function undoMove() {
     socket.value?.send(JSON.stringify({ gameId: gameState.value?.id, type: 'UNDO' }))
-    highlightedCells.value.clear()
   }
   function redoMove() {
     socket.value?.send(JSON.stringify({ gameId: gameState.value?.id, type: 'REDO' }))
-    highlightedCells.value.clear()
   }
 
   return {

@@ -91,10 +91,10 @@ class GameWebSocketHandler(
         undoManagers.getOrPut(gameId) { UndoManager() }.redoStep()
     }
 
-    private fun broadcastGameUpdate(game: Game) {
+    private fun broadcastGameUpdate(game: Game, messageType: MessageType) {
         sessions[game.id]?.filter { it.isOpen }?.forEach { session ->
             try {
-                sendServerMessage(session, MessageType.MAKE_MOVE, game.id, game)
+                sendServerMessage(session, messageType, game.id, game)
             } catch (e: Exception) {
                 logger.warn("Failed to send message to session: ${e.message}")
             }
