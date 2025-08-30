@@ -17,6 +17,7 @@ export function useGame() {
   const sessionConfig = ref<NewGameRequest>({
     playerTypes: { BLACK: 'HUMAN', WHITE: 'AI' },
     currentPlayer: 'BLACK',
+    preferredSide: 'BLACK',
   })
   const clickAudio = new Audio(clickSound)
   clickAudio.preload = 'auto'

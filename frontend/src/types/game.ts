@@ -24,4 +24,5 @@ export interface NewGameRequest {
   id?: string
   playerTypes: PlayerTypes
   currentPlayer: Player
+  preferredSide: Player
 }

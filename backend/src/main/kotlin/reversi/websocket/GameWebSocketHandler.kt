@@ -2,6 +2,7 @@ package reversi.websocket
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -13,7 +14,9 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import reversi.controller.dto.MoveRequest
 import reversi.controller.dto.NewGameRequest
+import reversi.model.CellState
 import reversi.model.Game
+import reversi.model.PlayerType
 import reversi.service.GameService
 import reversi.util.MoveCommand
 import reversi.util.UndoManager
@@ -31,6 +34,7 @@ class GameWebSocketHandler(
 
     private val sessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>()
     private val sessionToGameId = ConcurrentHashMap<WebSocketSession, String>()
+    private val sessionSides = ConcurrentHashMap<WebSocketSession, CellState>()
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private val logger = LoggerFactory.getLogger(GameWebSocketHandler::class.java.name)
 
@@ -45,8 +49,8 @@ class GameWebSocketHandler(
             val payload = event.payload
 
             when (event.type) {
-                MessageType.CREATE -> createGame(session, Json.decodeFromJsonElement<NewGameRequest>(payload!!))
-                MessageType.MAKE_MOVE -> makeMove(gameId, Json.decodeFromJsonElement<MoveRequest>(payload!!))
+                MessageType.CREATE -> createGame(session, payload)
+                MessageType.MAKE_MOVE -> makeMove(session, gameId, payload)
                 MessageType.UNDO -> undoMove(gameId)
                 MessageType.REDO -> redoMove(gameId)
                 MessageType.JOIN -> joinGame(session, gameId)
@@ -60,22 +64,55 @@ class GameWebSocketHandler(
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         val gameId = sessionToGameId.remove(session) ?: return
         sessions[gameId]?.remove(session)
+        sessionSides.remove(session)
         if (sessions[gameId]?.isEmpty() == true) {
             sessions.remove(gameId)
             undoManagers.remove(gameId)
         }
     }
 
-    private fun createGame(session: WebSocketSession, newGame: NewGameRequest) {
+    private fun createGame(session: WebSocketSession, payload: JsonObject?) {
+        requireNotNull(payload)
+        val newGame = Json.decodeFromJsonElement<NewGameRequest>(payload)
+
         val id = newGame.id ?: UUID.randomUUID().toString()
         undoManagers[id] = UndoManager()
-        sessionToGameId[session] = id
-        sessions.computeIfAbsent(id) { mutableSetOf() }.add(session)
+
+        val humanSides = newGame.playerTypes.filter { it.value == PlayerType.HUMAN }.keys
+        val assignedSide = newGame.preferredSide?.takeIf { it in humanSides } ?: humanSides.first()
+        registerSession(session, id, assignedSide)
+
         gameService.createGame(newGame.copy(id = id))
     }
 
-    private fun makeMove(gameId: String?, moveRequest: MoveRequest) {
+    private fun joinGame(session: WebSocketSession, gameId: String?) {
+        requireNotNull(gameId) { "Missing gameId" }
+        val game = gameService.getGame(gameId)
+        requireNotNull(game) { "Game not found" }
+
+        val assignedSide = assignSideForJoin(game)
+        requireNotNull(assignedSide) { "All sides taken" }
+        registerSession(session, gameId, assignedSide)
+
+        sendServerMessage(session, MessageType.JOIN, gameId, game)
+    }
+
+    private fun makeMove(session: WebSocketSession, gameId: String?, payload: JsonObject?) {
         requireNotNull(gameId)
+        requireNotNull(payload)
+
+        val game = gameService.getGame(gameId) ?: run {
+            sendError(session, "Game not found")
+            return
+        }
+
+        val side = sessionSides[session]
+        if (side != game.currentPlayer) {
+            sendError(session, "It's not your turn")
+            return
+        }
+
+        val moveRequest = json.decodeFromJsonElement<MoveRequest>(payload)
         val undoManager = undoManagers.getOrPut(gameId) { UndoManager() }
         val command = MoveCommand(gameService, gameId, moveRequest.row, moveRequest.col)
         undoManager.doStep(command)
@@ -106,22 +143,24 @@ class GameWebSocketHandler(
         session.sendMessage(TextMessage(json.encodeToString(message)))
     }
 
-    private fun joinGame(session: WebSocketSession, gameId: String?) {
-        requireNotNull(gameId) { "Missing gameId" }
-        val game = gameService.getGame(gameId)
-        requireNotNull(game) { "Game not found" }
-        sessionToGameId[session] = gameId
-        sessions.computeIfAbsent(gameId) { mutableSetOf() }.add(session)
-        sendServerMessage(session, MessageType.JOIN, gameId, game)
-    }
-
     private fun sendError(session: WebSocketSession, errorMsg: String) {
         val errorPayload = Json.encodeToJsonElement(mapOf("error" to errorMsg)).jsonObject
-        val errorMessage = ServerMessage(type = MessageType.ERROR, gameId = "", payload = errorPayload)
+        val errorMessage = ServerMessage(type = MessageType.ERROR, payload = errorPayload)
         try {
             session.sendMessage(TextMessage(json.encodeToString(errorMessage)))
         } catch (e: Exception) {
             logger.error("Failed to send error message: ${e.message}")
         }
+    }
+
+    private fun registerSession(session: WebSocketSession, gameId: String, side: CellState) {
+        sessionToGameId[session] = gameId
+        sessionSides[session] = side
+        sessions.computeIfAbsent(gameId) { ConcurrentHashMap.newKeySet() }.add(session)
+    }
+
+    private fun assignSideForJoin(game: Game): CellState? {
+        val humanSides = game.playerTypes.filter { it.value == PlayerType.HUMAN }.keys
+        return humanSides.firstOrNull { side -> sessionSides.values.none { it == side } }
     }
 }

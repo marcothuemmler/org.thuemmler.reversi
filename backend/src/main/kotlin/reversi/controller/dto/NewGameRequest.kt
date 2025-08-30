@@ -8,5 +8,6 @@ import reversi.model.PlayerType
 data class NewGameRequest(
     val id: String? = null,
     val playerTypes: Map<CellState, PlayerType>,
-    val currentPlayer: CellState = CellState.BLACK
+    val currentPlayer: CellState = CellState.BLACK,
+    val preferredSide: CellState? = CellState.BLACK
 )
