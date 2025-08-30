@@ -24,15 +24,6 @@ export default {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
-
-app {
-  font-family: 'Montserrat', sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #333;
-}
 
 .navbar {
   display: flex;
@@ -56,10 +47,9 @@ app {
 }
 
 .nav-link:hover {
-  color: #4f46e5; /* subtle highlight on hover */
+  color: #4f46e5;
 }
 
-/* Main Content */
 .content {
   flex: 1;
   display: flex;
