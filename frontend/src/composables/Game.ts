@@ -7,7 +7,6 @@ import { useWebSocket } from './WebSocket'
 import { getWebSocketUrl } from '@/utils/websocket'
 
 export function useGame() {
-
   const centerOffset = 'translate(-50%, -50%)'
   const gridSize = 8
   const gameState = ref<GameState | null>(null)
@@ -34,6 +33,13 @@ export function useGame() {
   const whiteCount = computed(() =>
     board.reduce((acc, row) => acc + row.filter((cell) => cell === 'WHITE').length, 0),
   )
+
+  const winner = computed(() => {
+    if (!isFinished.value) return ''
+    if (blackCount.value > whiteCount.value) return 'Black Wins!'
+    if (whiteCount.value > blackCount.value) return 'White Wins!'
+    return "It's a Draw!"
+  })
 
   const socket = useWebSocket(getWebSocketUrl('games'), onMessage, onOpen)
 
@@ -129,11 +135,6 @@ export function useGame() {
   }
 
   function makeMove(row: number, col: number) {
-    if (isFinished.value) {
-      createGame()
-      return
-    }
-
     const isValid = validMoves.value.some((m) => m.row === row && m.col === col)
     if (!isValid) return
 
@@ -171,6 +172,8 @@ export function useGame() {
     board,
     blackCount,
     whiteCount,
+    isFinished,
+    winner,
     createGame,
     toggleValidMoves,
     undoMove,

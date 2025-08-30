@@ -1,7 +1,22 @@
 <script setup lang="ts">
-import { useGame } from '../composables/Game'
+import { ref, watch } from 'vue'
+import { useGame } from '@/composables/Game'
+import GameOverModal from './GameOverModal.vue'
 
 const game = useGame()
+const showModal = ref(false)
+
+watch(
+  () => game.isFinished.value,
+  (finished) => {
+    if (finished) setTimeout(() => (showModal.value = true), 500)
+  }
+)
+
+function restartGame() {
+  showModal.value = false
+  game.createGame()
+}
 </script>
 
 <template>
@@ -31,11 +46,12 @@ const game = useGame()
       </div>
     </div>
     <div class="controls">
-      <button @click="() => game.createGame()">Restart Game</button>
+      <button @click="restartGame">Restart Game</button>
       <button @click="game.toggleValidMoves">Hint</button>
       <button @click="game.undoMove">Undo</button>
       <button @click="game.redoMove">Redo</button>
     </div>
+    <GameOverModal :show="showModal" :winner="game.winner.value" @restart="restartGame" />
   </div>
 </template>
 
