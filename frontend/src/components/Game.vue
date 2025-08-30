@@ -3,11 +3,25 @@ import { ref, watch } from 'vue'
 import { useGame } from '@/composables/Game'
 import GameOverModal from './GameOverModal.vue'
 
-const game = useGame()
+const {
+  isFinished,
+  createGame,
+  blackCount,
+  whiteCount,
+  gridSize,
+  board,
+  cellClass,
+  makeMove,
+  pieceTransform,
+  toggleValidMoves,
+  undoMove,
+  redoMove,
+  winner,
+} = useGame()
 const showModal = ref(false)
 
 watch(
-  () => game.isFinished.value,
+  () => isFinished.value,
   (finished) => {
     if (finished) setTimeout(() => (showModal.value = true), 500)
   }
@@ -15,28 +29,25 @@ watch(
 
 function restartGame() {
   showModal.value = false
-  game.createGame()
+  createGame()
 }
 </script>
 
 <template>
   <div id="game">
-    <p class="score">Black: {{ game.blackCount }} | White: {{ game.whiteCount }}</p>
-    <div id="board" :style="{ gridTemplateColumns: `repeat(${game.gridSize}, 50px)` }">
+    <p class="score">Black: {{ blackCount }} | White: {{ whiteCount }}</p>
+    <div id="board" :style="{ gridTemplateColumns: `repeat(${gridSize}, 50px)` }">
       <div
-        v-for="(cell, index) in game.board.flat()"
+        v-for="(cell, index) in board.flat()"
         :key="index"
-        :class="game.cellClass(Math.floor(index / game.gridSize), index % game.gridSize)"
-        @click="game.makeMove(Math.floor(index / game.gridSize), index % game.gridSize)"
+        :class="cellClass(Math.floor(index / gridSize), index % gridSize)"
+        @click="makeMove(Math.floor(index / gridSize), index % gridSize)"
       >
         <div
           class="piece"
           :style="{
             visibility: cell === 'EMPTY' ? 'hidden' : 'visible',
-            transform: game.pieceTransform(
-              Math.floor(index / game.gridSize),
-              index % game.gridSize
-            ),
+            transform: pieceTransform(Math.floor(index / gridSize), index % gridSize),
             transition: 'transform 0.5s',
           }"
         >
@@ -47,11 +58,11 @@ function restartGame() {
     </div>
     <div class="controls">
       <button @click="restartGame">Restart Game</button>
-      <button @click="game.toggleValidMoves">Hint</button>
-      <button @click="game.undoMove">Undo</button>
-      <button @click="game.redoMove">Redo</button>
+      <button @click="toggleValidMoves">Hint</button>
+      <button @click="undoMove">Undo</button>
+      <button @click="redoMove">Redo</button>
     </div>
-    <GameOverModal :show="showModal" :winner="game.winner.value" @restart="restartGame" />
+    <GameOverModal :show="showModal" :winner="winner" @restart="restartGame" />
   </div>
 </template>
 
