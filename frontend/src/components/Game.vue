@@ -36,7 +36,7 @@ function restartGame() {
 <template>
   <div id="game">
     <p class="score">Black: {{ blackCount }} | White: {{ whiteCount }}</p>
-    <div id="board" :style="{ gridTemplateColumns: `repeat(${gridSize}, 50px)` }">
+    <div id="board" :style="{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }">
       <div
         v-for="(cell, index) in board.flat()"
         :key="index"

@@ -47,3 +47,15 @@ button.destructive:hover {
 .no-scroll {
     overflow: hidden;
 }
+
+@media (max-width: 768px) {
+    .button {
+        gap: 0rem;
+    }
+}
+
+@media (max-width: 480px) {
+    button {
+        margin: 0rem;
+    }
+}
