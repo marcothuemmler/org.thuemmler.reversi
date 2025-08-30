@@ -71,7 +71,7 @@ export function useGame() {
     socket.send(ClientMessage.create('JOIN').withGameId(id).asString())
   }
 
-  function onMessage(event: MessageEvent<string>) {
+  function onMessage(event: MessageEvent) {
     try {
       const message: ServerMessage<GameState> = JSON.parse(event.data)
       const type = message.type

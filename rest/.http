@@ -9,6 +9,7 @@ Accept: application/json
 Content-Type: application/json
 
 {
+    "id": "{{gameId}}",
     "playerTypes": { "BLACK": "HUMAN", "WHITE": "AI" },
     "currentPlayer": "BLACK"
 }
@@ -32,7 +33,7 @@ Content-Type: application/json
 
 {
   "row": 2,
-  "col": 4
+  "col": 3
 }
 
 ### Undo move

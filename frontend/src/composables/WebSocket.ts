@@ -2,7 +2,7 @@ import { ref, onUnmounted } from 'vue'
 
 export function useWebSocket<T = unknown>(
   url: string,
-  onMessage: (event: MessageEvent<string>) => void,
+  onMessage: (event: MessageEvent) => void,
   onOpen?: (context?: T) => void,
 ) {
   const socket = ref<WebSocket | null>(null)
