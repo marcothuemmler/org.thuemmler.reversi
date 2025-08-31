@@ -10,21 +10,19 @@
   <img src="./images/image.png" width="480"/>
 </div>
 
-A web-based Reversi (Othello) game built with **Vue.js** frontend and **Kotlin/Spring Boot** backend. Designed for fun, learning, and experimentation, supporting both AI and multiplayer games.
+A **web-based Reversi (Othello) game** with **AI and multiplayer support**, built with **Vue.js** frontend and **Kotlin/Spring Boot** backend. Designed for learning, experimentation, and fun.
 
 ---
 
 ## Tech Stack
 
 * **Frontend:** Vue 3, TypeScript, Nginx for static hosting
-* **Backend:** Kotlin, Spring Boot, REST API (for testing), WebSocket (for real-time gameplay)
+* **Backend:** Kotlin, Spring Boot, WebSocket for real-time gameplay, REST API endpoints for testing
 * **Build & Deployment:** Docker, Docker Compose
 
 ---
 
-## Quick Start
-
-Clone the repository and run the application using Docker:
+## Quick Start (Docker)
 
 ```bash
 git clone git@github.com:marcothuemmler/org.thuemmler.reversi.git
@@ -32,13 +30,9 @@ cd org.thuemmler.reversi
 docker compose up --build -d
 ```
 
-Open the game in your browser:
+Open in browser: `http://localhost:3000`
 
-```
-http://localhost:3000
-```
-
-Frontend API requests are automatically proxied to the backend (`localhost:8080`).
+API requests proxy to backend on `localhost:8080`.
 
 ---
 
@@ -57,14 +51,6 @@ npm install
 npm run dev
 ```
 
-Open in browser:
-
-```
-http://localhost:3000
-```
-
-API requests will proxy to the backend on `localhost:8080`.
-
 ### Backend
 
 ```bash
@@ -75,8 +61,6 @@ cd backend
 ---
 
 ## Backend API (Testing Only)
-
-> The frontend primarily uses WebSocket for real-time gameplay. REST endpoints exist mainly for testing.
 
 | Method | Endpoint                | Description                 |
 | ------ | ----------------------- | --------------------------- |
@@ -93,9 +77,7 @@ cd backend
 
 ## WebSocket (Real-Time Gameplay)
 
-The game uses WebSocket for **live board updates, moves, and game events**.
-
-**Connection URL:**
+**URL:**
 
 ```
 ws://localhost:8080/ws/games
@@ -111,15 +93,20 @@ ws://localhost:8080/ws/games
 | UNDO       | Undo last move                                          |
 | REDO       | Redo previously undone move                             |
 
-**Notes:**
+**Example JSON for creating a game:**
 
-* Messages are JSON objects with `type`, optional `gameId`, and `payload`.
-* `{gameId}` is required for joining or making moves in an existing game.
-* `playerTypes` determine AI vs Multiplayer mode:
+```json
+{
+  "type": "CREATE",
+  "payload": {
+    "playerTypes": { "BLACK": "HUMAN", "WHITE": "AI" },
+    "currentPlayer": "BLACK",
+    "preferredSide": "BLACK"
+  }
+}
+```
 
-    * `{ "BLACK": "HUMAN", "WHITE": "AI" }` → Single-player against AI
-    * `{ "BLACK": "HUMAN", "WHITE": "HUMAN" }` → Multiplayer
-* Example JSON for a move:
+**Example JSON for making a move:**
 
 ```json
 {
@@ -129,23 +116,22 @@ ws://localhost:8080/ws/games
 }
 ```
 
-* Example JSON for creating a new game:
+---
 
-```json
-{
-  "type": "CREATE",
-  "payload": {
-    "playerTypes": { "BLACK": "HUMAN", "WHITE": "AI" },
-    "currentPlayer": "BLACK"
-  }
-}
-```
+## Features
+
+* Single-player vs AI or multiplayer
+* Real-time updates via WebSocket
+* Undo/Redo moves
+* Move highlighting
+* Click sound effects
+* Fully reactive board with Vue 3
 
 ---
 
 ## Docker Notes
 
-* Frontend runs on port `3000`, served via Nginx, and proxies `/games` requests to the backend (see `frontend/nginx.conf`).
+* Frontend runs on port `3000`, served via Nginx (see `frontend/nginx.conf`), and proxies requests to the backend.
 * Backend runs on port `8080` (see `docker-compose.yml`).
 
 ---
