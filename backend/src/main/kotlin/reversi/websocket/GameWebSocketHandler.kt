@@ -20,6 +20,7 @@ import reversi.service.GameService
 import reversi.util.MoveCommand
 import reversi.util.UndoManager
 import reversi.websocket.dto.ClientMessage
+import reversi.websocket.dto.GameUpdate
 import reversi.websocket.dto.MessageType
 import reversi.websocket.dto.ServerMessage
 import java.util.*
@@ -67,6 +68,7 @@ class GameWebSocketHandler(
 
         if (sessions.sessionsForGame(gameId).isEmpty()) {
             undoManagers.remove(gameId)
+            gameService.removeGame(gameId)
         }
     }
 
@@ -97,7 +99,8 @@ class GameWebSocketHandler(
 
         logger.info("Player joined: gameId=$gameId, session=${session.id}, side=$assignedSide")
 
-        sendServerMessage(session, MessageType.JOIN, gameId, game)
+        val payload = GameUpdate.fromGame(game)
+        sendServerMessage(session, MessageType.JOIN, gameId, payload)
     }
 
     private fun assignSide(game: Game): CellState? {
@@ -142,15 +145,17 @@ class GameWebSocketHandler(
 
     private fun broadcastGameUpdate(game: Game, messageType: MessageType) {
         sessions.sessionsForGame(game.id).filter { it.isOpen }.forEach { session ->
+            val includeValidMoves = sessions.assignedSide(session) == game.currentPlayer
+            val payload = GameUpdate.fromGame(game, includeValidMoves)
             try {
-                sendServerMessage(session, messageType, game.id, game)
+                sendServerMessage(session, messageType, game.id, payload)
             } catch (e: Exception) {
                 logger.warn("Failed to send message to session: ${e.message}")
             }
         }
     }
 
-    private fun sendServerMessage(session: WebSocketSession, type: MessageType, gameId: String, payload: Game) {
+    private fun sendServerMessage(session: WebSocketSession, type: MessageType, gameId: String, payload: GameUpdate) {
         val message = ServerMessage(type, gameId, json.encodeToJsonElement(payload))
         session.sendMessage(TextMessage(json.encodeToString(message)))
     }
