@@ -143,3 +143,11 @@
 .modal button:hover {
     background-color: #555;
 }
+
+@media (max-width: 768px) {
+    #board {
+            grid-gap: 1px;
+            padding: 1px;
+            border: 14px solid #111;
+    }
+}
