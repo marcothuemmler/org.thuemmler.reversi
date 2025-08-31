@@ -3,10 +3,8 @@ kotlinx-coroutines = "1.10.2"
 spring = "3.5.5"
 serialization = "1.9.0"
 spring-dependency = "1.1.7"
-dotenv = "6.5.1"
 
 [libraries]
-dotenv = { group = "io.github.cdimascio", name = "dotenv-kotlin", version.ref = "dotenv"}
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-serialization-json", version.ref = "serialization" }
 springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
