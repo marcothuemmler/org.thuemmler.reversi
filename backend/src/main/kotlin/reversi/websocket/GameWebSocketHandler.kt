@@ -23,16 +23,18 @@ import reversi.websocket.dto.ClientMessage
 import reversi.websocket.dto.MessageType
 import reversi.websocket.dto.ServerMessage
 import java.util.*
+import java.util.concurrent.ConcurrentMap
 
 @Component
 class GameWebSocketHandler(
-    private val gameService: GameService, private val undoManagers: MutableMap<String, UndoManager>
+    private val gameService: GameService,
+    private val undoManagers: ConcurrentMap<String, UndoManager>,
+    private val sessions: SessionRegistry
 ) : TextWebSocketHandler() {
 
     companion object {
         private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
         private val logger = LoggerFactory.getLogger(GameWebSocketHandler::class.java.name)
-        private val sessions = SessionRegistry()
     }
 
     init {

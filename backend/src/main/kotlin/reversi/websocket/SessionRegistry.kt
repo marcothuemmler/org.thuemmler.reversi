@@ -1,9 +1,11 @@
 package reversi.websocket
 
+import org.springframework.stereotype.Component
 import org.springframework.web.socket.WebSocketSession
 import reversi.model.CellState
 import java.util.concurrent.ConcurrentHashMap
 
+@Component
 class SessionRegistry {
     private val sessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>()
     private val sessionToGameId = ConcurrentHashMap<WebSocketSession, String>()
