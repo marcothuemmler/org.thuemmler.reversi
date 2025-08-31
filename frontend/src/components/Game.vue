@@ -66,4 +66,4 @@ function restartGame() {
   </div>
 </template>
 
-<style scoped src="../styles/Game.css"></style>
+<style scoped src="@/styles/Game.css"></style>

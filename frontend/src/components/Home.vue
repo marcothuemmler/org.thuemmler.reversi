@@ -20,5 +20,5 @@ const home = useHome()
   </div>
 </template>
 
-<style scoped src="../styles/Home.css">
+<style scoped src="@/styles/Home.css">
 </style>

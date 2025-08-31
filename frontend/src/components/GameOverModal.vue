@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, onUnmounted, watch } from 'vue'
+import { defineProps, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{
