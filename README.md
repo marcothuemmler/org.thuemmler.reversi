@@ -14,6 +14,21 @@ A **web-based Reversi (Othello) game** with **AI and multiplayer support**, buil
 
 ---
 
+## Table of Contents
+
+* [Tech Stack](#tech-stack)
+* [Quick Start (Docker)](#quick-start-docker)
+* [Running Locally (Development Mode)](#running-locally-development-mode)
+* [Backend API (Testing Only)](#backend-api-testing-only)
+* [WebSocket (Real-Time Gameplay)](#websocket-real-time-gameplay)
+* [Features](#features)
+* [Docker Notes](#docker-notes)
+* [Configuration](#configuration)
+* [Contributing](#contributing)
+* [License](#license)
+
+---
+
 ## Tech Stack
 
 * **Frontend:** Vue 3, TypeScript, Nginx for static hosting
@@ -23,6 +38,8 @@ A **web-based Reversi (Othello) game** with **AI and multiplayer support**, buil
 ---
 
 ## Quick Start (Docker)
+
+⚠️ Make sure `.env` exists and is configured appropriately
 
 ```bash
 git clone git@github.com:marcothuemmler/org.thuemmler.reversi.git
@@ -56,6 +73,25 @@ npm run dev
 ```bash
 cd backend
 ./gradlew bootRun
+```
+
+> Spring Boot reads `.env` variables for ports and allowed origins. Make sure `.env` exists (see `.env.template`).
+
+---
+
+## Configuration
+
+* `.env.template`:
+
+```env
+SERVER_PORT=8080
+ALLOWED_ORIGINS=http://localhost:3000,https://yourserver.com
+```
+
+* Copy to `.env` for local development:
+
+```bash
+cp .env.template .env
 ```
 
 ---
@@ -124,7 +160,6 @@ ws://localhost:8080/ws/games
 * Real-time updates via WebSocket
 * Undo/Redo moves
 * Move highlighting
-* Click sound effects
 * Fully reactive board with Vue 3
 
 ---
@@ -133,6 +168,12 @@ ws://localhost:8080/ws/games
 
 * Frontend runs on port `3000`, served via Nginx (see `frontend/nginx.conf`), and proxies requests to the backend.
 * Backend runs on port `8080` (see `docker-compose.yml`).
+
+---
+
+## Contributing
+
+Contributions are welcome!
 
 ---
 
