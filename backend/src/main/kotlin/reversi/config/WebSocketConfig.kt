@@ -9,10 +9,12 @@ import reversi.websocket.GameWebSocketHandler
 @Configuration
 @EnableWebSocket
 @Suppress("unused")
-open class WebSocketConfig(private val gameWebSocketHandler: GameWebSocketHandler) : WebSocketConfigurer {
+open class WebSocketConfig(
+    private val gameWebSocketHandler: GameWebSocketHandler,
+    private val appConfig: AppConfig
+) : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(gameWebSocketHandler, "/ws/games")
-            .setAllowedOrigins("*")
+        registry.addHandler(gameWebSocketHandler, "/ws/games").setAllowedOrigins(*appConfig.allowedOriginsList)
     }
 }

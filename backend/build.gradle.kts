@@ -13,6 +13,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.dotenv)
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.serialization.json)

@@ -6,10 +6,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 @Suppress("unused")
-open class WebConfig : WebMvcConfigurer {
+open class WebConfig(private val appConfig: AppConfig) : WebMvcConfigurer {
     override fun addCorsMappings(registry: CorsRegistry) {
         registry.addMapping("/**")
-            .allowedOrigins("*")
+            .allowedOrigins(*appConfig.allowedOriginsList)
             .allowedMethods("GET", "POST", "PUT", "DELETE")
     }
 }
