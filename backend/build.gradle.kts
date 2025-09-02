@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.springboot.web)
     implementation(libs.springboot.websocket)
     testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
 }
 
