@@ -28,6 +28,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.springboot.starter.test)
 }
 
 tasks.test {

@@ -13,6 +13,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-s
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
 springboot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
+springboot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test", version.ref = "spring" }
 springboot-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
 springboot-websocket = { group = "org.springframework.boot", name = "spring-boot-starter-websocket", version.ref = "spring" }
 
