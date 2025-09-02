@@ -42,6 +42,18 @@ tasks.jacocoTestReport {
         html.required.set(true)
         csv.required.set(false)
     }
+    classDirectories.setFrom(
+        files(classDirectories.files.map { dir ->
+            fileTree(dir) {
+                exclude(
+                    "reversi/ReversiApplication.class",
+                    "reversi/ReversiApplicationKt.class",
+                    "reversi/config/**",
+                    "**/*\$*"
+                )
+            }
+        })
+    )
 }
 
 kotlin {
