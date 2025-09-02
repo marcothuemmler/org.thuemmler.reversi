@@ -1,8 +1,13 @@
 plugins {
     kotlin("jvm") version "2.2.0"
     kotlin("plugin.serialization") version "2.2.0"
+    id("jacoco")
     alias(libs.plugins.springboot)
     alias(libs.plugins.spring.dependency.management)
+}
+
+jacoco {
+    toolVersion = "0.8.13"
 }
 
 group = "org.thuemmler"
@@ -27,6 +32,16 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
 }
 
 kotlin {
