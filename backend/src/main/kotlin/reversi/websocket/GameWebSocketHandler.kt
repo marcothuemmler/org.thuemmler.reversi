@@ -1,10 +1,11 @@
 package reversi.websocket
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
@@ -19,10 +20,7 @@ import reversi.model.PlayerType
 import reversi.service.GameService
 import reversi.util.MoveCommand
 import reversi.util.UndoManager
-import reversi.websocket.dto.ClientMessage
-import reversi.websocket.dto.GameUpdate
-import reversi.websocket.dto.MessageType
-import reversi.websocket.dto.ServerMessage
+import reversi.websocket.dto.*
 import java.util.*
 import java.util.concurrent.ConcurrentMap
 
@@ -30,7 +28,8 @@ import java.util.concurrent.ConcurrentMap
 class GameWebSocketHandler(
     private val gameService: GameService,
     private val undoManagers: ConcurrentMap<String, UndoManager>,
-    private val sessions: SessionRegistry
+    private val sessions: SessionRegistry,
+    private val broadcastScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 ) : TextWebSocketHandler() {
 
     companion object {
@@ -44,17 +43,12 @@ class GameWebSocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         try {
-            val event = json.decodeFromString<ClientMessage>(message.payload)
-            val gameId = event.gameId
-            val payload = event.payload
-
-            when (event.type) {
-                MessageType.CREATE -> createGame(session, payload)
-                MessageType.MAKE_MOVE -> makeMove(session, gameId, payload)
-                MessageType.UNDO -> undoMove(gameId)
-                MessageType.REDO -> redoMove(gameId)
-                MessageType.JOIN -> joinGame(session, gameId)
-                MessageType.ERROR -> sendError(session, "Client sent ERROR type")
+            when (val event = json.decodeFromString<ClientMessage>(message.payload)) {
+                is CreateGame -> createGame(session, event.payload)
+                is MakeMove -> makeMove(session, event.gameId, event.payload)
+                is Undo -> undoMove(event.gameId)
+                is Redo -> redoMove(event.gameId)
+                is Join -> joinGame(session, event.gameId)
             }
         } catch (e: Exception) {
             logger.error("Failed to handle message from session=${session.id}: ${e.message}", e)
@@ -72,10 +66,7 @@ class GameWebSocketHandler(
         }
     }
 
-    private fun createGame(session: WebSocketSession, payload: JsonElement?) {
-        requireNotNull(payload)
-        val newGame = json.decodeFromJsonElement<NewGameRequest>(payload)
-
+    private fun createGame(session: WebSocketSession, newGame: NewGameRequest) {
         val id = newGame.id ?: UUID.randomUUID().toString()
         getUndoManager(id)
 
@@ -88,79 +79,73 @@ class GameWebSocketHandler(
         gameService.createGame(newGame.copy(id = id))
     }
 
-    private fun joinGame(session: WebSocketSession, gameId: String?) {
-        requireNotNull(gameId) { "Missing gameId" }
-        val game = gameService.getGame(gameId)
-        requireNotNull(game) { "Game not found" }
+    private fun joinGame(session: WebSocketSession, gameId: String) {
+        gameService.getGame(gameId)?.let { game ->
 
-        val assignedSide = assignSide(game) ?: return sendError(session, "All sides taken")
+            val assignedSide = assignSide(game) ?: return sendError(session, "All sides taken")
 
-        sessions.register(session, gameId, assignedSide)
+            sessions.register(session, gameId, assignedSide)
 
-        logger.info("Player joined: gameId=$gameId, session=${session.id}, side=$assignedSide")
+            logger.info("Player joined: gameId=$gameId, session=${session.id}, side=$assignedSide")
 
-        val payload = GameUpdate.fromGame(game)
-        sendServerMessage(session, MessageType.JOIN, gameId, payload)
+            val payload = GameUpdate.fromGame(game)
+            sendServerMessage(session, MessageType.JOIN, gameId, payload)
+        } ?: sendError(session, "Game not found")
     }
 
+    @Synchronized
     private fun assignSide(game: Game): CellState? {
         val humanSides = game.playerTypes.filterValues { it == PlayerType.HUMAN }.keys
         val takenSides = sessions.openSessionsForGame(game.id).mapNotNull { sessions.assignedSide(it) }.toSet()
         return humanSides.firstOrNull { it !in takenSides }
     }
 
-    private fun makeMove(session: WebSocketSession, gameId: String?, payload: JsonElement?) {
-        requireNotNull(gameId)
-        requireNotNull(payload)
-
+    private fun makeMove(session: WebSocketSession, gameId: String, move: MoveRequest) {
         val game = gameService.getGame(gameId) ?: run {
             logger.warn("Move rejected: game not found, session=${session.id}, gameId=$gameId")
-            sendError(session, "Game not found")
-            return
+            return sendError(session, "Game not found")
         }
 
         val side = sessions.assignedSide(session)
         if (side != game.currentPlayer) {
             logger.warn("Move rejected: out of turn, session=${session.id}, side=$side, currentPlayer=${game.currentPlayer}")
-            sendError(session, "It's not your turn")
-            return
+            return sendError(session, "It's not your turn")
         }
 
-        val (row, col) = json.decodeFromJsonElement<MoveRequest>(payload)
+        val (row, col) = move
         val command = MoveCommand(gameService, gameId, row, col)
         logger.debug("Move made: gameId={}, session={}, side={}, row={}, col={}", gameId, session.id, side, row, col)
         getUndoManager(gameId).doStep(command)
     }
 
-    private fun undoMove(gameId: String?) {
+    private fun undoMove(gameId: String) {
         getUndoManager(gameId).undoStep()
     }
 
-    private fun redoMove(gameId: String?) {
+    private fun redoMove(gameId: String) {
         getUndoManager(gameId).redoStep()
     }
 
     private fun broadcastGameUpdate(game: Game, messageType: MessageType) {
         sessions.forEachOpenSession(game.id) { session ->
-            val includeValidMoves = sessions.assignedSide(session) == game.currentPlayer
-            val payload = GameUpdate.fromGame(game, includeValidMoves)
-            sendServerMessage(session, messageType, game.id, payload)
+            broadcastScope.launch {
+                val includeValidMoves = sessions.assignedSide(session) == game.currentPlayer
+                val payload = GameUpdate.fromGame(game, includeValidMoves)
+                sendServerMessage(session, messageType, game.id, payload)
+            }
         }
     }
 
     private fun sendServerMessage(session: WebSocketSession, type: MessageType, gameId: String, payload: GameUpdate) {
-        val message = ServerMessage(type, gameId, json.encodeToJsonElement(payload))
+        val message = ServerMessage(type, gameId, payload)
         session.sendMessage(TextMessage(json.encodeToString(message)))
     }
 
     private fun sendError(session: WebSocketSession, errorMsg: String) {
-        val errorPayload = json.encodeToJsonElement(mapOf("error" to errorMsg))
-        val errorMessage = ServerMessage(type = MessageType.ERROR, payload = errorPayload)
+        val errorMessage = ServerMessage(type = MessageType.ERROR, payload = mapOf("error" to errorMsg))
         session.sendMessage(TextMessage(json.encodeToString(errorMessage)))
     }
 
-    private fun getUndoManager(gameId: String?): UndoManager {
-        requireNotNull(gameId)
-        return undoManagers.getOrPut(gameId) { UndoManager() }
-    }
+    private fun getUndoManager(gameId: String) = undoManagers.getOrPut(gameId) { UndoManager() }
+
 }

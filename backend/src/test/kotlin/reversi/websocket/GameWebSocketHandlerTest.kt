@@ -3,10 +3,10 @@ package reversi.websocket
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,8 +21,7 @@ import reversi.model.Game
 import reversi.model.PlayerType
 import reversi.service.GameService
 import reversi.util.UndoManager
-import reversi.websocket.dto.ClientMessage
-import reversi.websocket.dto.MessageType
+import reversi.websocket.dto.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.assertTrue
 
@@ -50,14 +49,10 @@ class GameWebSocketHandlerTest {
     fun `handleTextMessage should create game`() {
         val gameId = "game1"
         val newGameRequest = NewGameRequest(
-            id = gameId,
-            playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
-            preferredSide = CellState.BLACK
+            id = gameId, playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN), preferredSide = CellState.BLACK
         )
-        val message = ClientMessage(
-            type = MessageType.CREATE,
-            gameId = gameId,
-            payload = json.encodeToJsonElement(newGameRequest)
+        val message = CreateGame(
+            payload = newGameRequest
         )
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
@@ -80,11 +75,7 @@ class GameWebSocketHandlerTest {
         every { sessions.openSessionsForGame(gameId) } returns emptySet()
         every { sessions.assignedSide(webSocketSession) } returns null
 
-        val message = ClientMessage(
-            type = MessageType.JOIN,
-            gameId = gameId,
-            payload = JsonObject(emptyMap())
-        )
+        val message = Join(gameId = gameId)
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
 
@@ -105,10 +96,8 @@ class GameWebSocketHandlerTest {
         every { sessions.assignedSide(webSocketSession) } returns CellState.WHITE
 
         val moveRequest = MoveRequest(row = 0, col = 0)
-        val message = ClientMessage(
-            type = MessageType.MAKE_MOVE,
-            gameId = gameId,
-            payload = json.encodeToJsonElement(moveRequest)
+        val message = MakeMove(
+            gameId = gameId, payload = moveRequest
         )
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
@@ -123,8 +112,7 @@ class GameWebSocketHandlerTest {
         undoManagers[gameId] = undoManager
 
         handler.handleMessage(
-            webSocketSession,
-            TextMessage(json.encodeToString(ClientMessage(MessageType.UNDO, gameId, null)))
+            webSocketSession, TextMessage(json.encodeToString(Undo(gameId = gameId)))
         )
 
         verify { undoManager.undoStep() }
@@ -137,8 +125,9 @@ class GameWebSocketHandlerTest {
         undoManagers[gameId] = undoManager
 
         handler.handleMessage(
-            webSocketSession,
-            TextMessage(json.encodeToString(ClientMessage(MessageType.REDO, gameId, null)))
+            webSocketSession, TextMessage(
+                json.encodeToString(Redo(gameId = gameId))
+            )
         )
 
         verify { undoManager.redoStep() }
@@ -186,7 +175,8 @@ class GameWebSocketHandlerTest {
         val undoManagers = ConcurrentHashMap<String, UndoManager>()
         val sessions = mockk<SessionRegistry>(relaxed = true)
 
-        GameWebSocketHandler(gameServiceMock, undoManagers, sessions)
+        val testScope = CoroutineScope(Dispatchers.Unconfined)
+        GameWebSocketHandler(gameServiceMock, undoManagers, sessions, testScope)
 
         val session1 = mockk<WebSocketSession>(relaxed = true)
         val session2 = mockk<WebSocketSession>(relaxed = true)

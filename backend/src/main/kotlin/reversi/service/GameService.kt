@@ -1,9 +1,7 @@
 package reversi.service
 
 import jakarta.annotation.PreDestroy
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.*
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import reversi.ai.MoveSelectorStrategy
@@ -17,8 +15,8 @@ import reversi.store.GameStore
 import reversi.util.BoardFactory
 import reversi.util.BoardUtil
 import reversi.websocket.dto.MessageType
-import java.util.UUID
-import java.util.concurrent.Executors
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class GameService(
@@ -27,7 +25,12 @@ class GameService(
     @param:Lazy private val moveSelector: MoveSelectorStrategy
 ) {
 
-    private val aiDispatcher = Executors.newFixedThreadPool(10).asCoroutineDispatcher()
+    private val gameAiScopes = ConcurrentHashMap<String, CoroutineScope>()
+
+    private fun getAiScope(gameId: String): CoroutineScope =
+        gameAiScopes.computeIfAbsent(gameId) {
+            CoroutineScope(Dispatchers.Default + SupervisorJob())
+        }
 
     fun createGame(game: NewGameRequest): Game {
         val board = BoardFactory.createStartingBoard()
@@ -51,7 +54,10 @@ class GameService(
 
     fun getGame(id: String): Game? = store.getGame(id)
 
-    fun removeGame(id: String) = store.removeGame(id)
+    fun removeGame(id: String) {
+        store.removeGame(id)
+        gameAiScopes.remove(id)?.cancel()
+    }
 
     fun saveState(game: Game, messageType: MessageType): Game {
         val savedGame = store.save(game)
@@ -72,14 +78,19 @@ class GameService(
         return newGame
     }
 
-    private fun handleAiTurn(game: Game): Game = runBlocking(aiDispatcher) {
-        var currentGame = game
-        while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
-            val aiMove = moveSelector.selectMove(currentGame) ?: break
-            delay(500)
-            currentGame = applyPlayerMove(currentGame, aiMove.first, aiMove.second)
+    private fun handleAiTurn(game: Game): Game = runBlocking {
+        val scope = getAiScope(game.id)
+
+        val deferred = scope.async {
+            var currentGame = game
+            while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
+                val aiMove = moveSelector.selectMove(currentGame) ?: break
+                delay(500)
+                currentGame = applyPlayerMove(currentGame, aiMove.first, aiMove.second)
+            }
+            currentGame
         }
-        currentGame
+        deferred.await()
     }
 
     private fun applyPlayerMove(game: Game, row: Int, col: Int): Game {
@@ -178,7 +189,8 @@ class GameService(
     }
 
     @PreDestroy
-    @Suppress("unused")
-    fun shutdownAI() = aiDispatcher.close()
-
+    fun shutdownAI() {
+        gameAiScopes.values.forEach { it.cancel() }
+        gameAiScopes.clear()
+    }
 }
