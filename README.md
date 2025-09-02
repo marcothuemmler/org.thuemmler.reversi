@@ -3,6 +3,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.0-blue)
 ![Vue.js](https://img.shields.io/badge/Vue-3.5.18-brightgreen)
 ![Node.js](https://img.shields.io/badge/Node-20.19.0-yellow)
+[![build](https://github.com/marcothuemmler/org.thuemmler.reversi/actions/workflows/kotlin-ci-coverage.yml/badge.svg)](https://github.com/marcothuemmler/org.thuemmler.reversi/actions/workflows/kotlin-ci-coverage.yml)
+[![Coverage](https://codecov.io/gh/marcothuemmler/org.thuemmler.reversi/branch/main/graph/badge.svg?label=Coverage)](https://codecov.io/gh/marcothuemmler/org.thuemmler.reversi?label=Coverage)
 
 # Reversi
 
