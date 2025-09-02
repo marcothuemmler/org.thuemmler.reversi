@@ -1,17 +1,19 @@
 [versions]
 kotlinx-coroutines = "1.10.2"
+mockk = "1.14.5"
 spring = "3.5.5"
 serialization = "1.9.0"
 spring-dependency = "1.1.7"
 
 [libraries]
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
+kotlinx-coroutines = {group  = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-serialization-json", version.ref = "serialization" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
 springboot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
 springboot-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
 springboot-websocket = { group = "org.springframework.boot", name = "spring-boot-starter-websocket", version.ref = "spring" }
-kotlinx-coroutines = {group  = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 springboot = { id = "org.springframework.boot", version.ref = "spring" }

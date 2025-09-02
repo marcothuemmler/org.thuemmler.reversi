@@ -9,7 +9,7 @@ data class Board<T>(
 ) {
     companion object {
         inline fun <reified T> new(size: Int = 8, defaultValue: T) =
-            Board(grid = List(size) { List(size) { defaultValue } })
+            Board(size, grid = List(size) { List(size) { defaultValue } })
 
         inline fun <reified T> new(defaultValue: T) = new(8, defaultValue)
     }

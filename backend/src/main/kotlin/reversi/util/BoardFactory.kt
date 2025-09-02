@@ -18,6 +18,6 @@ object BoardFactory {
                 }
             }
         }
-        return Board(grid = grid)
+        return Board(size, grid)
     }
 }

@@ -7,30 +7,27 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Component
 class SessionRegistry {
-    private val sessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>()
-    private val sessionToGameId = ConcurrentHashMap<WebSocketSession, String>()
-    private val sessionSides = ConcurrentHashMap<WebSocketSession, CellState>()
+    private data class SessionInfo(val gameId: String, val side: CellState)
+
+    private val sessions = ConcurrentHashMap<WebSocketSession, SessionInfo>()
 
     fun register(session: WebSocketSession, gameId: String, side: CellState) {
-        sessionToGameId[session] = gameId
-        sessionSides[session] = side
-        sessions.computeIfAbsent(gameId) { ConcurrentHashMap.newKeySet() }.add(session)
+        sessions[session] = SessionInfo(gameId, side)
     }
 
-    fun remove(session: WebSocketSession): String? {
-        val gameId = sessionToGameId.remove(session)
-        sessionSides.remove(session)
-        gameId?.let {
-            sessions[it]?.remove(session)
-            if (sessions[it]?.isEmpty() == true) sessions.remove(it)
+    fun remove(session: WebSocketSession) = sessions.remove(session)?.gameId
+
+
+    fun assignedSide(session: WebSocketSession) = sessions[session]?.side
+
+    fun openSessionsForGame(gameId: String) =
+        sessions.filter { (session, info) -> info.gameId == gameId && session.isOpen }.keys
+
+    fun forEachOpenSession(gameId: String, block: (WebSocketSession) -> Unit) {
+        sessions.forEach { (session, info) ->
+            if (info.gameId == gameId && session.isOpen) block(session)
         }
-        return gameId
     }
 
-    fun sessionsForGame(gameId: String): Set<WebSocketSession> =
-        sessions[gameId]?.filter { it.isOpen }?.toSet() ?: emptySet()
-
-    fun assignedSide(session: WebSocketSession): CellState? {
-        return sessionSides[session]
-    }
+    fun hasOpenSessions(gameId: String) = sessions.any { (session, info) -> info.gameId == gameId && session.isOpen }
 }
