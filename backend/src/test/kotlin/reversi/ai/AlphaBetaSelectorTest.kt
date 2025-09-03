@@ -7,12 +7,13 @@ import org.junit.jupiter.api.Test
 import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.Game
+import reversi.service.MoveEngine
 import kotlin.test.assertNull
 
 class AlphaBetaSelectorTest {
 
-    private val gameService = mockk<reversi.service.GameService>(relaxed = true)
-    private val selector = AlphaBetaSelector(gameService, baseDepth = 1)
+    private val moveEngine = mockk<MoveEngine>(relaxed = true)
+    private val selector = AlphaBetaSelector(moveEngine, baseDepth = 1)
 
     @Test
     fun `selectMove returns null if no valid moves`() {
@@ -22,7 +23,7 @@ class AlphaBetaSelectorTest {
             currentPlayer = CellState.BLACK
         )
 
-        every { gameService.getValidMoves(game.id) } returns emptyList()
+        every { moveEngine.calculateValidMoves(game.board, game.currentPlayer) } returns emptyList()
 
         val move = selector.selectMove(game)
         assertNull(move)
@@ -37,10 +38,10 @@ class AlphaBetaSelectorTest {
         )
 
         val validMoves = listOf(0 to 0, 0 to 1)
-        every { gameService.getValidMoves(game.id) } returns validMoves
-        every { gameService.getFlippableCells(any(), any(), any(), any(), any(), any()) } returns listOf()
-        every { gameService.applyMove(any(), any(), any(), any(), any()) } answers { firstArg() }
-        every { gameService.isGameFinished(any()) } returns false
+        every { moveEngine.calculateValidMoves(game.board, game.currentPlayer) } returns validMoves
+        every { moveEngine.getFlippableCells(any(), any(), any(), any(), any(), any()) } returns listOf()
+        every { moveEngine.applyMove(any(), any(), any(), any(), any()) } answers { firstArg() }
+        every { moveEngine.isGameFinished(any()) } returns false
 
         val move = selector.selectMove(game)
         assert(move in validMoves)
@@ -55,10 +56,10 @@ class AlphaBetaSelectorTest {
         )
 
         val validMoves = listOf(0 to 0, 3 to 3)
-        every { gameService.getValidMoves(game.id) } returns validMoves
-        every { gameService.getFlippableCells(any(), any(), any(), any(), any(), any()) } returns listOf()
-        every { gameService.applyMove(any(), any(), any(), any(), any()) } answers { firstArg() }
-        every { gameService.isGameFinished(any()) } returns false
+        every { moveEngine.calculateValidMoves(game.board, game.currentPlayer) } returns validMoves
+        every { moveEngine.getFlippableCells(any(), any(), any(), any(), any(), any()) } returns listOf()
+        every { moveEngine.applyMove(any(), any(), any(), any(), any()) } answers { firstArg() }
+        every { moveEngine.isGameFinished(any()) } returns false
 
         val move = selector.selectMove(game)
         assertEquals(0 to 0, move)

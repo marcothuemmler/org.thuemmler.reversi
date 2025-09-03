@@ -168,7 +168,7 @@ class GameWebSocketHandlerTest {
 
         val gameServiceMock = mockk<GameService>(relaxed = true)
         val subscribers = mutableListOf<(Game, MessageType) -> Unit>()
-        every { gameServiceMock.eventPublisher.subscribe(any()) } answers {
+        every { gameServiceMock.subscribe(any()) } answers {
             subscribers += firstArg<(Game, MessageType) -> Unit>()
         }
 

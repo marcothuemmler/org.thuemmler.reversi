@@ -36,7 +36,7 @@ class GameWebSocketHandler(
     }
 
     init {
-        gameService.eventPublisher.subscribe(::broadcastGameUpdate)
+        gameService.subscribe(::broadcastGameUpdate)
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {

@@ -2,14 +2,14 @@ package reversi.websocket.dto
 
 import kotlinx.serialization.Serializable
 import reversi.controller.dto.MoveRequest
-import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.Game
+import reversi.model.GameBoard
 
 @Serializable
 data class GameUpdate(
     val id: String,
-    val board: Board<CellState>,
+    val board: GameBoard,
     val currentPlayer: CellState,
     val validMoves: List<MoveRequest> = emptyList(),
     val isFinished: Boolean

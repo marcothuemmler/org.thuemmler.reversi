@@ -116,7 +116,7 @@ class GameControllerTest {
         val result = controller.undoMove("game1")
 
         assertSame(expected, result)
-        verify(exactly = 1) { manager.undoStep() }   // optional: remove if you dislike call-count checks
+        verify(exactly = 1) { manager.undoStep() }
     }
 
     @Test
@@ -134,7 +134,7 @@ class GameControllerTest {
         val result = controller.redoMove("game1")
 
         assertSame(expected, result)
-        verify(exactly = 1) { manager.redoStep() }   // optional
+        verify(exactly = 1) { manager.redoStep() }
     }
 
     @Test
@@ -149,14 +149,5 @@ class GameControllerTest {
         assertThrows<IllegalStateException> {
             controller.redoMove("game1")
         }
-    }
-
-    @Test
-    fun `getValidMoves maps service pairs to MoveRequest`() {
-        every { service.getValidMoves("game1") } returns listOf(1 to 2, 3 to 4)
-
-        val moves = controller.getValidMoves("game1")
-
-        assertEquals(listOf(MoveRequest(1, 2), MoveRequest(3, 4)), moves)
     }
 }

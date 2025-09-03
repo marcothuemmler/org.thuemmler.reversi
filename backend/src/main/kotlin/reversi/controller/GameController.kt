@@ -1,12 +1,6 @@
 package reversi.controller
 
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reversi.controller.dto.MoveRequest
 import reversi.controller.dto.NewGameRequest
 import reversi.model.Game
@@ -59,10 +53,5 @@ class GameController(
         val undoManager = undoManagers[id] ?: throw IllegalStateException("No moves to redo")
         undoManager.redoStep()
         return service.getGame(id) ?: throw NoSuchElementException("Game not found: $id")
-    }
-
-    @GetMapping("/{id}/moves")
-    fun getValidMoves(@PathVariable id: String): List<MoveRequest> {
-        return service.getValidMoves(id).map { MoveRequest(it.first, it.second) }
     }
 }

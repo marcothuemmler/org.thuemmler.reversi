@@ -2,10 +2,11 @@ package reversi.util
 
 import reversi.model.Board
 import reversi.model.CellState
+import reversi.model.GameBoard
 
 object BoardFactory {
 
-    fun createStartingBoard(size: Int = 8): Board<CellState> {
+    fun createStartingBoard(size: Int = 8): GameBoard {
         require(size % 2 == 0) { "Board size must be even" }
 
         val mid = size / 2

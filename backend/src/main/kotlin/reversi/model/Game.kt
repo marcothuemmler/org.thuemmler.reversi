@@ -2,12 +2,12 @@ package reversi.model
 
 import kotlinx.serialization.Serializable
 import reversi.controller.dto.MoveRequest
-import java.util.UUID
+import java.util.*
 
 @Serializable
 data class Game(
     val id: String = UUID.randomUUID().toString(),
-    val board: Board<CellState>,
+    val board: GameBoard,
     val currentPlayer: CellState = CellState.BLACK,
     val validMoves: List<MoveRequest> = emptyList(),
     val playerTypes: Map<CellState, PlayerType> = mapOf(

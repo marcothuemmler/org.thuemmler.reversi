@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import reversi.ai.MoveSelectorStrategy
 import reversi.controller.dto.NewGameRequest
-import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.PlayerType
 import reversi.store.GameStore
@@ -23,14 +22,16 @@ class GameServiceTest {
     private lateinit var store: GameStore
     private lateinit var moveSelector: MoveSelectorStrategy
     private lateinit var publisher: GameEventPublisher
-    private lateinit var service: GameService
+    private lateinit var operations: MoveEngine
+    private lateinit var service: GameServiceImpl
 
     @BeforeEach
     fun setUp() {
         store = GameStore()
         moveSelector = mockk(relaxed = true)
         publisher = mockk(relaxed = true)
-        service = GameService(store, publisher, moveSelector)
+        operations = MoveEngineImpl()
+        service = GameServiceImpl(store, publisher, moveSelector, operations)
     }
 
     @Test
@@ -40,8 +41,6 @@ class GameServiceTest {
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             preferredSide = CellState.BLACK
         )
-
-        every { moveSelector.selectMove(any()) } returns Pair(2, 4)
 
         val game = service.createGame(request)
 
@@ -130,69 +129,5 @@ class GameServiceTest {
 
         assertEquals(CellState.BLACK, resultGame.currentPlayer)
         assertFalse(resultGame.isFinished)
-    }
-
-    @Test
-    fun `getValidMoves should return correct list of moves`() = runTest {
-        val gameId = "game1"
-        service.createGame(
-            NewGameRequest(
-                id = gameId,
-                playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
-                preferredSide = CellState.BLACK
-            )
-        )
-
-        val validMoves = service.getValidMoves(gameId)
-        assertTrue(validMoves.isNotEmpty())
-    }
-
-    @Test
-    fun `getFlippableCells should return correct flippable cells`() = runTest {
-        val game = service.createGame(
-            NewGameRequest(
-                id = "game1",
-                playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
-                preferredSide = CellState.BLACK
-            )
-        )
-
-        val flips = service.getFlippableCells(game.board, 2, 3, CellState.BLACK, 0, 1)
-        assertNotNull(flips)
-    }
-
-    @Test
-    fun `applyMove should apply move and flips`() = runTest {
-        val game = service.createGame(
-            NewGameRequest(
-                id = "game1",
-                playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
-                preferredSide = CellState.BLACK
-            )
-        )
-        val flippable = listOf(2 to 4)
-        val newBoard = service.applyMove(game.board, 2, 3, CellState.BLACK, flippable)
-
-        assertEquals(CellState.BLACK, newBoard.getCell(2, 3))
-        assertEquals(CellState.BLACK, newBoard.getCell(2, 4))
-    }
-
-    @Test
-    fun `isGameFinished should detect end of game`() = runTest {
-        val game = service.createGame(
-            NewGameRequest(
-                id = "game1",
-                playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
-                preferredSide = CellState.BLACK
-            )
-        )
-
-        assertFalse(service.isGameFinished(game.board))
-    }
-
-    @Test
-    fun `game should be finished when board has no empty cells`() {
-        val fullBoard = Board.new(CellState.BLACK)
-        assertTrue(service.isGameFinished(fullBoard))
     }
 }

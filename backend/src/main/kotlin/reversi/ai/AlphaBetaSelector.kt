@@ -1,15 +1,16 @@
 package reversi.ai
 
-import reversi.model.Board
 import reversi.model.CellState
 import reversi.model.Game
-import reversi.service.GameService
+import reversi.model.GameBoard
+import reversi.model.MoveList
+import reversi.service.MoveEngine
+import reversi.util.BoardUtil
 import kotlin.math.max
 import kotlin.math.min
-import reversi.util.BoardUtil
 
 class AlphaBetaSelector(
-    private val gameService: GameService,
+    private val moveEngine: MoveEngine,
     private val baseDepth: Int = 2
 ) : MoveSelectorStrategy {
 
@@ -25,7 +26,7 @@ class AlphaBetaSelector(
     )
 
     override fun selectMove(game: Game): Pair<Int, Int>? {
-        val validMoves = gameService.getValidMoves(game.id)
+        val validMoves = moveEngine.calculateValidMoves(game.board, game.currentPlayer)
         if (validMoves.isEmpty()) return null
 
         val player = game.currentPlayer
@@ -58,7 +59,7 @@ class AlphaBetaSelector(
     }
 
     private fun alphaBeta(
-        board: Board<CellState>,
+        board: GameBoard,
         currentPlayer: CellState,
         depth: Int,
         alpha: Int,
@@ -66,7 +67,7 @@ class AlphaBetaSelector(
         maximizingPlayer: Boolean,
         aiPlayer: CellState
     ): Int {
-        if (depth == 0 || gameService.isGameFinished(board)) {
+        if (depth == 0 || moveEngine.isGameFinished(board)) {
             return evaluate(board, aiPlayer)
         }
 
@@ -101,7 +102,7 @@ class AlphaBetaSelector(
         }
     }
 
-    private fun evaluate(board: Board<CellState>, aiPlayer: CellState): Int {
+    private fun evaluate(board: GameBoard, aiPlayer: CellState): Int {
         val opponent = switchPlayer(aiPlayer)
         var score = 0
 
@@ -125,12 +126,12 @@ class AlphaBetaSelector(
         return score
     }
 
-    private fun getValidMoves(board: Board<CellState>, player: CellState): List<Pair<Int, Int>> {
+    private fun getValidMoves(board: GameBoard, player: CellState): MoveList {
         return buildList {
             for (row in 0 until board.size) {
                 for (col in 0 until board.size) {
                     val flips = BoardUtil.directions.flatMap { (dx, dy) ->
-                        gameService.getFlippableCells(board, row, col, player, dx, dy)
+                        moveEngine.getFlippableCells(board, row, col, player, dx, dy)
                     }
                     if (board.getCell(row, col) == CellState.EMPTY && flips.isNotEmpty()) add(row to col)
                 }
@@ -138,14 +139,14 @@ class AlphaBetaSelector(
         }
     }
 
-    private fun simulateMove(board: Board<CellState>, player: CellState, move: Pair<Int, Int>): Board<CellState> {
+    private fun simulateMove(board: GameBoard, player: CellState, move: Pair<Int, Int>): GameBoard {
         val flippable = BoardUtil.directions.flatMap { (dx, dy) ->
-            gameService.getFlippableCells(board, move.first, move.second, player, dx, dy)
+            moveEngine.getFlippableCells(board, move.first, move.second, player, dx, dy)
         }
-        return gameService.applyMove(board, move.first, move.second, player, flippable)
+        return moveEngine.applyMove(board, move.first, move.second, player, flippable)
     }
 
-    private fun countStablePieces(board: Board<CellState>, player: CellState): Int {
+    private fun countStablePieces(board: GameBoard, player: CellState): Int {
         val size = board.size
         val stable = Array(size) { BooleanArray(size) }
         val corners = listOf(0 to 0, 0 to size - 1, size - 1 to 0, size - 1 to size - 1)
