@@ -1,7 +1,7 @@
 package reversi.service
 
-import jakarta.annotation.PreDestroy
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import reversi.ai.MoveSelectorStrategy
@@ -16,7 +16,6 @@ import reversi.util.BoardFactory
 import reversi.util.BoardUtil
 import reversi.websocket.dto.MessageType
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class GameService(
@@ -24,13 +23,6 @@ class GameService(
     val eventPublisher: GameEventPublisher = GameEventPublisher(),
     @param:Lazy private val moveSelector: MoveSelectorStrategy
 ) {
-
-    private val gameAiScopes = ConcurrentHashMap<String, CoroutineScope>()
-
-    private fun getAiScope(gameId: String): CoroutineScope =
-        gameAiScopes.computeIfAbsent(gameId) {
-            CoroutineScope(Dispatchers.Default + SupervisorJob())
-        }
 
     fun createGame(game: NewGameRequest): Game {
         val board = BoardFactory.createStartingBoard()
@@ -56,7 +48,6 @@ class GameService(
 
     fun removeGame(id: String) {
         store.removeGame(id)
-        gameAiScopes.remove(id)?.cancel()
     }
 
     fun saveState(game: Game, messageType: MessageType): Game {
@@ -79,18 +70,13 @@ class GameService(
     }
 
     private fun handleAiTurn(game: Game): Game = runBlocking {
-        val scope = getAiScope(game.id)
-
-        val deferred = scope.async {
-            var currentGame = game
-            while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
-                val aiMove = moveSelector.selectMove(currentGame) ?: break
-                delay(500)
-                currentGame = applyPlayerMove(currentGame, aiMove.first, aiMove.second)
-            }
-            currentGame
+        var currentGame = game
+        while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
+            val aiMove = moveSelector.selectMove(currentGame) ?: break
+            delay(500)
+            currentGame = applyPlayerMove(currentGame, aiMove.first, aiMove.second)
         }
-        deferred.await()
+        currentGame
     }
 
     private fun applyPlayerMove(game: Game, row: Int, col: Int): Game {
@@ -179,18 +165,16 @@ class GameService(
     }
 
     fun applyMove(board: Board<CellState>, row: Int, col: Int, player: CellState, flippable: List<Pair<Int, Int>>): Board<CellState> {
-        return flippable.fold(board.setCell(row, col, player)) { b, (r, c) ->
-            b.setCell(r, c, player)
+        val updatesByRow = (flippable + (row to col)).groupBy { it.first }
+        val newGrid = board.grid.mapIndexed { r, rowList ->
+            updatesByRow[r]?.let { updates ->
+                rowList.mapIndexed { c, cell -> if (updates.any { it.second == c }) player else cell }
+            } ?: rowList
         }
+        return board.copy(grid = newGrid)
     }
 
     fun isGameFinished(board: Board<CellState>): Boolean {
         return !hasAnyValidMoves(board, CellState.BLACK) && !hasAnyValidMoves(board, CellState.WHITE)
-    }
-
-    @PreDestroy
-    fun shutdownAI() {
-        gameAiScopes.values.forEach { it.cancel() }
-        gameAiScopes.clear()
     }
 }

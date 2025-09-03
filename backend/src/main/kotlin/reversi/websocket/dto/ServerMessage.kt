@@ -8,3 +8,8 @@ data class ServerMessage<T>(
     val gameId: String? = null,
     val payload: T,
 )
+
+@Serializable
+data class ErrorMessage(
+    val errorMsg: String
+)

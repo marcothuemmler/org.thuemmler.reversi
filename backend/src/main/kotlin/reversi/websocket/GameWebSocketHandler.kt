@@ -1,9 +1,7 @@
 package reversi.websocket
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -136,16 +134,30 @@ class GameWebSocketHandler(
         }
     }
 
-    private fun sendServerMessage(session: WebSocketSession, type: MessageType, gameId: String, payload: GameUpdate) {
-        val message = ServerMessage(type, gameId, payload)
-        session.sendMessage(TextMessage(json.encodeToString(message)))
+    private inline fun <reified T> sendServerMessage(
+        session: WebSocketSession, type: MessageType, gameId: String? = null, payload: T
+    ) {
+        safeSend(session, ServerMessage(type, gameId, payload))
     }
 
     private fun sendError(session: WebSocketSession, errorMsg: String) {
-        val errorMessage = ServerMessage(type = MessageType.ERROR, payload = mapOf("error" to errorMsg))
-        session.sendMessage(TextMessage(json.encodeToString(errorMessage)))
+        sendServerMessage(session, MessageType.ERROR, payload = ErrorMessage(errorMsg))
+    }
+
+    private inline fun <reified T> safeSend(session: WebSocketSession, message: ServerMessage<T>) {
+        try {
+            val text = json.encodeToString(message)
+            session.sendMessage(TextMessage(text))
+        } catch (e: Exception) {
+            logger.warn("Failed to send message to session=${session.id}: ${e.message}", e)
+        }
     }
 
     private fun getUndoManager(gameId: String) = undoManagers.getOrPut(gameId) { UndoManager() }
 
+    @PreDestroy
+    @Suppress("unused")
+    private fun closeScope() {
+        broadcastScope.cancel()
+    }
 }

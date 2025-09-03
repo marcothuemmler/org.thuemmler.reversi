@@ -195,10 +195,4 @@ class GameServiceTest {
         val fullBoard = Board.new(CellState.BLACK)
         assertTrue(service.isGameFinished(fullBoard))
     }
-
-    @Test
-    fun `shutdownAI should close dispatcher`() {
-        service.shutdownAI()
-        // Nothing to assert, just ensure no exceptions
-    }
 }
