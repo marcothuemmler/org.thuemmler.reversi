@@ -25,10 +25,12 @@ dependencies {
     implementation(libs.springboot.starter)
     implementation(libs.springboot.web)
     implementation(libs.springboot.websocket)
+    implementation(libs.springboot.starter.actuator)
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.springboot.starter.test)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
 }
 
 tasks.test {
@@ -62,4 +64,8 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
+}
+
+springBoot {
+    buildInfo()
 }

@@ -4,6 +4,7 @@ mockk = "1.14.5"
 spring = "3.5.5"
 serialization = "1.9.0"
 spring-dependency = "1.1.7"
+springdoc-openapi = "2.8.12"
 
 [libraries]
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
@@ -13,9 +14,11 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name ="kotlinx-s
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 springboot-devtools = { group = "org.springframework.boot", name = "spring-boot-devtools", version.ref = "spring" }
 springboot-starter = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
+springboot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator", version.ref = "spring" }
 springboot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test", version.ref = "spring" }
 springboot-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "spring" }
 springboot-websocket = { group = "org.springframework.boot", name = "spring-boot-starter-websocket", version.ref = "spring" }
+springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
 
 [plugins]
 springboot = { id = "org.springframework.boot", version.ref = "spring" }
