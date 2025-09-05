@@ -1,7 +1,7 @@
 package reversi.util
 
 interface Command {
-    fun doStep()
+    suspend fun doStep()
     fun undoStep()
     fun redoStep()
 }

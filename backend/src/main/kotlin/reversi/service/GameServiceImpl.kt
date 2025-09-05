@@ -1,7 +1,6 @@
 package reversi.service
 
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import reversi.ai.MoveSelectorStrategy
@@ -21,7 +20,7 @@ class GameServiceImpl(
     private val moveEngine: MoveEngine
 ) : GameService {
 
-    override fun createGame(game: NewGameRequest): Game {
+    override suspend fun createGame(game: NewGameRequest): Game {
         val board = BoardFactory.createStartingBoard()
         val validMoves = moveEngine.calculateValidMoves(board, game.currentPlayer)
         val createdGame = GameFactory.createNewGame(game, board, validMoves)
@@ -46,7 +45,7 @@ class GameServiceImpl(
         return savedGame
     }
 
-    override fun makeMove(gameId: String, row: Int, col: Int): Game {
+    override suspend fun makeMove(gameId: String, row: Int, col: Int): Game {
         var game = store.getGame(gameId) ?: throw NoSuchElementException("Game not found")
 
         if (game.playerTypes[game.currentPlayer] == PlayerType.AI) {
@@ -57,14 +56,14 @@ class GameServiceImpl(
         return handleAiTurn(game)
     }
 
-    private fun handleAiTurn(game: Game): Game = runBlocking {
+    private suspend fun handleAiTurn(game: Game): Game {
         var currentGame = game
         while (!currentGame.isFinished && currentGame.playerTypes[currentGame.currentPlayer] == PlayerType.AI) {
             val aiMove = moveSelector.selectMove(currentGame) ?: break
             delay(500)
             currentGame = applyMove(currentGame, aiMove.first, aiMove.second)
         }
-        currentGame
+        return currentGame
     }
 
     private fun applyMove(game: Game, row: Int, col: Int): Game {

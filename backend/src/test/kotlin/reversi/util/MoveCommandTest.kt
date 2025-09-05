@@ -1,6 +1,7 @@
 package reversi.util
 
 import io.mockk.*
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import reversi.model.Game
@@ -19,23 +20,23 @@ class MoveCommandTest {
     @BeforeEach
     fun setup() {
         gameService = mockk(relaxed = true)
-        every { gameService.getGame(gameId) } returns mockGame
-        every { gameService.makeMove(gameId, row, col) } returns mockGame
+        coEvery { gameService.getGame(gameId) } returns mockGame
+        coEvery { gameService.makeMove(gameId, row, col) } returns mockGame
         command = MoveCommand(gameService, gameId, row, col)
     }
 
     @Test
-    fun `doStep stores previous and new game states`() {
+    fun `doStep stores previous and new game states`() = runTest {
         command.doStep()
 
-        verifyOrder {
+        coVerifyOrder {
             gameService.getGame(gameId)
             gameService.makeMove(gameId, row, col)
         }
     }
 
     @Test
-    fun `undoStep saves previous game state`() {
+    fun `undoStep saves previous game state`() = runTest {
         command.undoStep()
         verify(exactly = 0) { gameService.saveState(any(), any()) }
 
@@ -45,7 +46,7 @@ class MoveCommandTest {
     }
 
     @Test
-    fun `redoStep saves new game state`() {
+    fun `redoStep saves new game state`() = runTest {
         command.redoStep()
         verify(exactly = 0) { gameService.saveState(any(), any()) }
 
@@ -55,12 +56,12 @@ class MoveCommandTest {
     }
 
     @Test
-    fun `undo then redo calls correct methods in order`() {
+    fun `undo then redo calls correct methods in order`() = runTest {
         command.doStep()
         command.undoStep()
         command.redoStep()
 
-        verifySequence {
+        coVerifySequence {
             gameService.getGame(gameId)
             gameService.makeMove(gameId, row, col)
             gameService.saveState(mockGame, MessageType.UNDO)

@@ -27,7 +27,7 @@ class GameWebSocketHandler(
     private val gameService: GameService,
     private val undoManagers: ConcurrentMap<String, UndoManager>,
     private val sessions: SessionRegistry,
-    private val broadcastScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 ) : TextWebSocketHandler() {
 
     companion object {
@@ -40,17 +40,19 @@ class GameWebSocketHandler(
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-        try {
-            when (val event = json.decodeFromString<ClientMessage>(message.payload)) {
-                is CreateGame -> createGame(session, event.payload)
-                is MakeMove -> makeMove(session, event.gameId, event.payload)
-                is Undo -> undoMove(event.gameId)
-                is Redo -> redoMove(event.gameId)
-                is Join -> joinGame(session, event.gameId)
+        scope.launch {
+            try {
+                when (val event = json.decodeFromString<ClientMessage>(message.payload)) {
+                    is CreateGame -> createGame(session, event.payload)
+                    is MakeMove -> makeMove(session, event.gameId, event.payload)
+                    is Undo -> undoMove(event.gameId)
+                    is Redo -> redoMove(event.gameId)
+                    is Join -> joinGame(session, event.gameId)
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to handle message from session=${session.id}: ${e.message}", e)
+                sendError(session, "Failed to handle message: ${e.message}")
             }
-        } catch (e: Exception) {
-            logger.error("Failed to handle message from session=${session.id}: ${e.message}", e)
-            sendError(session, "Failed to handle message: ${e.message}")
         }
     }
 
@@ -64,7 +66,7 @@ class GameWebSocketHandler(
         }
     }
 
-    private fun createGame(session: WebSocketSession, newGame: NewGameRequest) {
+    private suspend fun createGame(session: WebSocketSession, newGame: NewGameRequest) {
         val id = newGame.id ?: UUID.randomUUID().toString()
         getUndoManager(id)
 
@@ -98,7 +100,7 @@ class GameWebSocketHandler(
         return humanSides.firstOrNull { it !in takenSides }
     }
 
-    private fun makeMove(session: WebSocketSession, gameId: String, move: MoveRequest) {
+    private suspend fun makeMove(session: WebSocketSession, gameId: String, move: MoveRequest) {
         val game = gameService.getGame(gameId) ?: run {
             logger.warn("Move rejected: game not found, session=${session.id}, gameId=$gameId")
             return sendError(session, "Game not found")
@@ -126,7 +128,7 @@ class GameWebSocketHandler(
 
     private fun broadcastGameUpdate(game: Game, messageType: MessageType) {
         sessions.forEachOpenSession(game.id) { session ->
-            broadcastScope.launch {
+            scope.launch {
                 val includeValidMoves = sessions.assignedSide(session) == game.currentPlayer
                 val payload = GameUpdate.fromGame(game, includeValidMoves)
                 sendServerMessage(session, messageType, game.id, payload)
@@ -153,11 +155,11 @@ class GameWebSocketHandler(
         }
     }
 
-    private fun getUndoManager(gameId: String) = undoManagers.getOrPut(gameId) { UndoManager() }
+    private fun getUndoManager(gameId: String) = undoManagers.computeIfAbsent(gameId) { UndoManager() }
 
     @PreDestroy
     @Suppress("unused")
     private fun closeScope() {
-        broadcastScope.cancel()
+        scope.cancel()
     }
 }

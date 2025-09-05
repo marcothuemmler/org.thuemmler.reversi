@@ -1,5 +1,6 @@
 package reversi.util
 
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -14,17 +15,17 @@ class UndoManagerTest {
     }
 
     @Test
-    fun `multiple commands undo and redo in correct order`() {
+    fun `multiple commands undo and redo in correct order`() = runTest {
         var state = 0
 
         val command1 = object : Command {
-            override fun doStep() { state += 1 }
+            override suspend fun doStep() { state += 1 }
             override fun undoStep() { state -= 1 }
             override fun redoStep() { state += 1 }
         }
 
         val command2 = object : Command {
-            override fun doStep() { state += 10 }
+            override suspend fun doStep() { state += 10 }
             override fun undoStep() { state -= 10 }
             override fun redoStep() { state += 10 }
         }

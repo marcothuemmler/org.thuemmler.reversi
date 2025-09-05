@@ -14,7 +14,7 @@ class MoveCommand(
     private var previousGame: Game? = null
     private var newGame: Game? = null
 
-    override fun doStep() {
+    override suspend fun doStep() {
         previousGame = gameService.getGame(gameId)
         newGame = gameService.makeMove(gameId, row, col)
     }

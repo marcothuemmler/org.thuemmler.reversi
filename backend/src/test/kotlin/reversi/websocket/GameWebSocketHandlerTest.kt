@@ -1,10 +1,11 @@
 package reversi.websocket
 
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -25,8 +26,10 @@ import reversi.websocket.dto.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.assertTrue
 
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 class GameWebSocketHandlerTest {
 
+    private val testScope = TestScope()
     private lateinit var gameService: GameService
     private lateinit var undoManagers: ConcurrentHashMap<String, UndoManager>
     private lateinit var sessions: SessionRegistry
@@ -40,7 +43,7 @@ class GameWebSocketHandlerTest {
         gameService = mockk(relaxed = true)
         undoManagers = ConcurrentHashMap()
         sessions = mockk(relaxed = true)
-        handler = GameWebSocketHandler(gameService, undoManagers, sessions)
+        handler = GameWebSocketHandler(gameService, undoManagers, sessions, testScope)
         webSocketSession = mockk(relaxed = true)
         every { webSocketSession.id } returns "session1"
     }
@@ -57,7 +60,8 @@ class GameWebSocketHandlerTest {
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
 
-        verify { gameService.createGame(match { it.playerTypes == newGameRequest.playerTypes }) }
+        testScope.advanceUntilIdle()
+        coVerify { gameService.createGame(match { it.playerTypes == newGameRequest.playerTypes }) }
         verify { sessions.register(webSocketSession, any(), CellState.BLACK) }
         assertTrue(undoManagers.containsKey(gameId))
     }
@@ -78,7 +82,7 @@ class GameWebSocketHandlerTest {
         val message = Join(gameId = gameId)
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
-
+        testScope.advanceUntilIdle()
         verify { sessions.register(webSocketSession, gameId, CellState.BLACK) }
         verify { webSocketSession.sendMessage(any()) }
     }
@@ -102,6 +106,7 @@ class GameWebSocketHandlerTest {
 
         handler.handleMessage(webSocketSession, TextMessage(json.encodeToString(message)))
 
+        testScope.advanceUntilIdle()
         verify { webSocketSession.sendMessage(match { it.payload.toString().contains("not your turn") }) }
     }
 
@@ -114,8 +119,9 @@ class GameWebSocketHandlerTest {
         handler.handleMessage(
             webSocketSession, TextMessage(json.encodeToString(Undo(gameId = gameId)))
         )
+        testScope.advanceUntilIdle()
 
-        verify { undoManager.undoStep() }
+        coVerify { undoManager.undoStep() }
     }
 
     @Test
@@ -129,6 +135,7 @@ class GameWebSocketHandlerTest {
                 json.encodeToString(Redo(gameId = gameId))
             )
         )
+        testScope.advanceUntilIdle()
 
         verify { undoManager.redoStep() }
     }
@@ -175,7 +182,6 @@ class GameWebSocketHandlerTest {
         val undoManagers = ConcurrentHashMap<String, UndoManager>()
         val sessions = mockk<SessionRegistry>(relaxed = true)
 
-        val testScope = CoroutineScope(Dispatchers.Unconfined)
         GameWebSocketHandler(gameServiceMock, undoManagers, sessions, testScope)
 
         val session1 = mockk<WebSocketSession>(relaxed = true)
@@ -194,8 +200,8 @@ class GameWebSocketHandlerTest {
         )
 
         subscribers.forEach { it(game, MessageType.MAKE_MOVE) }
-
-        verify { session1.sendMessage(any()) }
-        verify { session2.sendMessage(any()) }
+        testScope.advanceUntilIdle()
+        coVerify { session1.sendMessage(any()) }
+        coVerify { session2.sendMessage(any()) }
     }
 }

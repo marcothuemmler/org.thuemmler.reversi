@@ -1,9 +1,8 @@
 package reversi.controller
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.spyk
-import io.mockk.verify
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -19,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class GameControllerTest {
 
     private val service = mockk<GameService>(relaxed = true)
@@ -36,7 +36,7 @@ class GameControllerTest {
     }
 
     @Test
-    fun `createGame delegates to service`() {
+    fun `createGame delegates to service`() = runTest {
         val req =
             NewGameRequest(
                 "player1",
@@ -44,12 +44,12 @@ class GameControllerTest {
                 CellState.BLACK,
                 CellState.BLACK
             )
-        every { service.createGame(req) } returns sampleGame
+        coEvery { service.createGame(req) } returns sampleGame
 
         val result = controller.createGame(req)
 
         assertSame(sampleGame, result)
-        verify { service.createGame(req) }
+        coVerify { service.createGame(req) }
     }
 
     @Test
@@ -91,7 +91,7 @@ class GameControllerTest {
     }
 
     @Test
-    fun `makeMove creates UndoManager if absent`() {
+    fun `makeMove creates UndoManager if absent`() = runTest {
         every { service.getGame("game1") } returns sampleGame
 
         val req = MoveRequest(0, 0)
@@ -102,7 +102,7 @@ class GameControllerTest {
     }
 
     @Test
-    fun `undoMove returns latest game when manager exists`() {
+    fun `undoMove returns latest game when manager exists`() = runTest {
         val manager = spyk(UndoManager())
         undoManagers["game1"] = manager
 
@@ -138,7 +138,7 @@ class GameControllerTest {
     }
 
     @Test
-    fun `undoMove throws if no undoManager`() {
+    fun `undoMove throws if no undoManager`() = runTest {
         assertThrows<IllegalStateException> {
             controller.undoMove("game1")
         }

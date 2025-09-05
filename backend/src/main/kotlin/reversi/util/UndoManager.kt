@@ -5,7 +5,7 @@ class UndoManager {
     private val undoStack = mutableListOf<Command>()
     private val redoStack = mutableListOf<Command>()
 
-    fun doStep(command: Command) {
+    suspend fun doStep(command: Command) {
         undoStack.add(0, command)
         command.doStep()
         redoStack.clear()
