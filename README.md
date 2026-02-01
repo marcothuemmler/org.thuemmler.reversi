@@ -12,7 +12,7 @@
   <img src="./images/image.png" width="480"/>
 </div>
 
-A **web-based Reversi (Othello) game** with **AI and multiplayer support**, built with **Vue.js** frontend and **Kotlin/Spring Boot** backend. Designed for learning, experimentation, and fun.
+A **web-based Reversi (Othello) game** with **AI and multiplayer support**, built with **Vue.js** frontend and **Kotlin/Spring Boot** backend.
 
 ---
 
