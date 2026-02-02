@@ -40,7 +40,7 @@ class AlphaBetaSelector(
 
         for (move in orderedMoves) {
             val newBoard = simulateMove(game.board, player, move)
-            val value = alphaBeta(newBoard, switchPlayer(player), depth - 1, Int.MIN_VALUE, Int.MAX_VALUE, false, player)
+            val value = alphaBeta(newBoard, switchPlayer(player), depth - 1, Int.MIN_VALUE, Int.MAX_VALUE, player)
             if (value > bestValue) {
                 bestValue = value
                 bestMove = move
@@ -64,26 +64,37 @@ class AlphaBetaSelector(
         depth: Int,
         alpha: Int,
         beta: Int,
-        maximizingPlayer: Boolean,
         aiPlayer: CellState
     ): Int {
-        if (depth == 0 || moveEngine.isGameFinished(board)) {
+        if (moveEngine.isGameFinished(board)) {
+            val diff = count(aiPlayer, board) - count(switchPlayer(aiPlayer), board)
+            return diff * 10000
+        }
+        if (depth == 0) {
             return evaluate(board, aiPlayer)
         }
 
         var a = alpha
         var b = beta
-        val validMoves = getValidMoves(board, currentPlayer)
+        val validMoves = getValidMoves(board, currentPlayer).let { moves ->
+            if (currentPlayer == aiPlayer) {
+                moves.sortedByDescending { weightedBoard[it.first][it.second] }
+            } else {
+                moves.sortedBy { weightedBoard[it.first][it.second] }
+            }
+        }
         if (validMoves.isEmpty()) {
             // pass turn
-            return alphaBeta(board, switchPlayer(currentPlayer), depth - 1, a, b, !maximizingPlayer, aiPlayer)
+            return alphaBeta(board, switchPlayer(currentPlayer), depth - 1, a, b, aiPlayer)
         }
+
+        val maximizingPlayer = currentPlayer == aiPlayer
 
         if (maximizingPlayer) {
             var maxEval = Int.MIN_VALUE
             for (move in validMoves) {
                 val newBoard = simulateMove(board, currentPlayer, move)
-                val eval = alphaBeta(newBoard, switchPlayer(currentPlayer), depth - 1, a, b, false, aiPlayer)
+                val eval = alphaBeta(newBoard, switchPlayer(currentPlayer), depth - 1, a, b, aiPlayer)
                 maxEval = max(maxEval, eval)
                 a = max(a, eval)
                 if (b <= a) break
@@ -93,7 +104,7 @@ class AlphaBetaSelector(
             var minEval = Int.MAX_VALUE
             for (move in validMoves) {
                 val newBoard = simulateMove(board, currentPlayer, move)
-                val eval = alphaBeta(newBoard, switchPlayer(currentPlayer), depth - 1, a, b, true, aiPlayer)
+                val eval = alphaBeta(newBoard, switchPlayer(currentPlayer), depth - 1, a, b, aiPlayer)
                 minEval = min(minEval, eval)
                 b = min(b, eval)
                 if (b <= a) break
@@ -171,4 +182,6 @@ class AlphaBetaSelector(
 
     private fun switchPlayer(player: CellState) =
         if (player == CellState.BLACK) CellState.WHITE else CellState.BLACK
+
+    private fun count(player: CellState, board: GameBoard): Int = board.grid.sumOf { row -> row.count { it == player } }
 }
