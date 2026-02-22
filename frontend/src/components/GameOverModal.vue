@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 const props = defineProps<{
   show: boolean
   winner: string
+  result: 'win' | 'lose' | 'draw' | null
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +49,9 @@ onUnmounted(() => {
   <div v-if="show" class="modal-overlay">
     <div class="modal">
       <h2>Game Over</h2>
+      <p class="icon">
+        {{ result === 'win' ? '🏆' : result === 'lose' ? '😐' : '🤝' }}
+      </p>
       <p class="winner-text">{{ winner }}</p>
       <div class="buttons">
         <button @click="handleRestart">Restart</button>
@@ -97,5 +101,11 @@ onUnmounted(() => {
 .modal .buttons button {
   flex: 1;
   width: 0;
+}
+
+.icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  margin-top: 2rem;
 }
 </style>

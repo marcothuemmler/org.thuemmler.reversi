@@ -1,5 +1,5 @@
-import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
-import { useRouter, type HistoryState } from 'vue-router'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { type HistoryState, useRouter } from 'vue-router'
 import clickSound from '../assets/click.mp3'
 import type { CellState, GameState, Move, NewGameRequest, Player, PlayerTypes } from '@/types/game'
 import { ClientMessage, type ServerMessage } from '@/types/server'
@@ -37,9 +37,28 @@ export function useGame() {
 
   const winner = computed(() => {
     if (!isFinished.value) return ''
-    if (blackCount.value > whiteCount.value) return 'Black Wins!'
-    if (whiteCount.value > blackCount.value) return 'White Wins!'
+
+    const blackWins = blackCount.value > whiteCount.value
+    const whiteWins = whiteCount.value > blackCount.value
+
+    if (blackWins && sessionConfig.value.preferredSide === 'BLACK') return 'You Win!'
+    if (whiteWins && sessionConfig.value.preferredSide === 'WHITE') return 'You Win!'
+
+    if (blackWins || whiteWins) return 'You Lose!'
+
     return "It's a Draw!"
+  })
+
+  const result = computed<'win' | 'lose' | 'draw' | null>(() => {
+    if (!isFinished.value) return null
+
+    if (blackCount.value === whiteCount.value) return 'draw'
+
+    const youWon =
+      (blackCount.value > whiteCount.value && sessionConfig.value.preferredSide === 'BLACK') ||
+      (whiteCount.value > blackCount.value && sessionConfig.value.preferredSide === 'WHITE')
+
+    return youWon ? 'win' : 'lose'
   })
 
   const socket = useWebSocket(getWebSocketUrl('games'), onMessage, onOpen)
@@ -182,5 +201,6 @@ export function useGame() {
     makeMove,
     cellClass,
     pieceTransform,
+    result,
   }
 }

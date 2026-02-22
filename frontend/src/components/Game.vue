@@ -16,6 +16,7 @@ const {
   toggleValidMoves,
   undoMove,
   redoMove,
+  result,
   winner,
 } = useGame()
 const showModal = ref(false)
@@ -62,7 +63,7 @@ function restartGame() {
       <button @click="undoMove">Undo</button>
       <button @click="redoMove">Redo</button>
     </div>
-    <GameOverModal :show="showModal" :winner="winner" @restart="restartGame" />
+    <GameOverModal :show="showModal" :winner="winner" @restart="restartGame" :result="result" />
   </div>
 </template>
 
