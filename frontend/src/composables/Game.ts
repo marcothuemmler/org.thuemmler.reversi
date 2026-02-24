@@ -16,6 +16,7 @@ export function useGame() {
   const isFinished = ref(false)
   const sessionConfig = ref<NewGameRequest>({
     playerTypes: { BLACK: 'HUMAN', WHITE: 'AI' },
+    difficulty: 'MEDIUM',
     currentPlayer: 'BLACK',
     preferredSide: 'BLACK',
   })

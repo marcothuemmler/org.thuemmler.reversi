@@ -7,6 +7,7 @@ import java.util.*
 @Serializable
 data class Game(
     val id: String = UUID.randomUUID().toString(),
+    val difficulty: Difficulty = Difficulty.MEDIUM,
     val board: GameBoard,
     val currentPlayer: CellState = CellState.BLACK,
     val validMoves: List<MoveRequest> = emptyList(),
@@ -18,3 +19,4 @@ data class Game(
 )
 
 enum class PlayerType { HUMAN, AI }
+enum class Difficulty { EASY, MEDIUM, HARD }

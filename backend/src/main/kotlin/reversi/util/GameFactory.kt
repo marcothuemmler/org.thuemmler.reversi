@@ -11,6 +11,7 @@ object GameFactory {
     fun createNewGame(game: NewGameRequest, board: GameBoard?, validMoves: MoveList = emptyList()): Game {
         return Game(
             id = game.id ?: UUID.randomUUID().toString(),
+            difficulty = game.difficulty,
             board = board ?: BoardFactory.createStartingBoard(),
             playerTypes = game.playerTypes,
             currentPlayer = game.currentPlayer,

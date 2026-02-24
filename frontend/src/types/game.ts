@@ -22,6 +22,7 @@ export interface PlayerTypes {
 
 export interface NewGameRequest {
   id?: string
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD'
   playerTypes: PlayerTypes
   currentPlayer: Player
   preferredSide: Player

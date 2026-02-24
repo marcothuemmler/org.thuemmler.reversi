@@ -1,18 +1,12 @@
 package reversi.ai
 
-import reversi.model.CellState
-import reversi.model.Game
-import reversi.model.GameBoard
-import reversi.model.MoveList
+import reversi.model.*
 import reversi.service.MoveEngine
 import reversi.util.BoardUtil
 import kotlin.math.max
 import kotlin.math.min
 
-class AlphaBetaSelector(
-    private val moveEngine: MoveEngine,
-    private val baseDepth: Int = 2
-) : MoveSelectorStrategy {
+class AlphaBetaSelector(private val moveEngine: MoveEngine) : MoveSelectorStrategy {
 
     private val weightedBoard = arrayOf(
         arrayOf(99, -8, 8, 6, 6, 8, -8, 99),
@@ -36,7 +30,7 @@ class AlphaBetaSelector(
         val orderedMoves = validMoves.sortedByDescending { weightedBoard[it.first][it.second] }
 
         val emptyCells = game.board.size * game.board.size - game.board.grid.sumOf { row -> row.count { it != CellState.EMPTY } }
-        val depth = dynamicDepth(emptyCells)
+        val depth = dynamicDepth(game.difficulty, emptyCells)
 
         for (move in orderedMoves) {
             val newBoard = simulateMove(game.board, player, move)
@@ -50,7 +44,13 @@ class AlphaBetaSelector(
         return bestMove
     }
 
-    private fun dynamicDepth(emptyCells: Int): Int {
+    private fun dynamicDepth(difficulty: Difficulty, emptyCells: Int): Int {
+        val baseDepth = when(difficulty) {
+            Difficulty.EASY -> 1
+            Difficulty.MEDIUM -> 2
+            Difficulty.HARD -> 4
+        }
+
         return when {
             emptyCells <= 15 -> baseDepth + 2 // deeper in endgame
             emptyCells <= 30 -> baseDepth + 1

@@ -74,7 +74,7 @@ class GameWebSocketHandler(
         val assignedSide = newGame.preferredSide?.takeIf { it in humanSides } ?: humanSides.first()
         sessions.register(session, id, assignedSide)
 
-        logger.info("Game created: gameId=$id, session=${session.id}, side=$assignedSide")
+        logger.info("Game created: gameId=$id, session=${session.id}, side=$assignedSide, difficulty=${newGame.difficulty}")
 
         gameService.createGame(newGame.copy(id = id))
     }
