@@ -8,10 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import reversi.controller.dto.MoveRequest
 import reversi.controller.dto.NewGameRequest
-import reversi.model.Board
-import reversi.model.CellState
-import reversi.model.Game
-import reversi.model.PlayerType
+import reversi.model.*
 import reversi.service.GameService
 import reversi.util.UndoManager
 import kotlin.test.assertEquals
@@ -40,6 +37,7 @@ class GameControllerTest {
         val req =
             NewGameRequest(
                 "player1",
+                difficulty = Difficulty.MEDIUM,
                 mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.HUMAN),
                 CellState.BLACK,
                 CellState.BLACK

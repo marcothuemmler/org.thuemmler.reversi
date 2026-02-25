@@ -4,10 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import reversi.controller.dto.MoveRequest
 import reversi.controller.dto.NewGameRequest
-import reversi.model.CellState
-import reversi.model.Game
-import reversi.model.MoveList
-import reversi.model.PlayerType
+import reversi.model.*
 import java.util.*
 
 class GameFactoryTest {
@@ -18,6 +15,7 @@ class GameFactoryTest {
         val moves: MoveList = listOf(Pair(2, 3), Pair(4, 5))
         val request = NewGameRequest(
             id = "game-1",
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             currentPlayer = CellState.BLACK
         )
@@ -37,6 +35,7 @@ class GameFactoryTest {
     fun `should create a new game with default board if board is null`() {
         val request = NewGameRequest(
             id = "game-2",
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             currentPlayer = CellState.BLACK
         )
@@ -54,6 +53,7 @@ class GameFactoryTest {
     fun `should generate random UUID if id is null`() {
         val request = NewGameRequest(
             id = null,
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             currentPlayer = CellState.BLACK
         )
@@ -69,6 +69,7 @@ class GameFactoryTest {
         val moves: MoveList = listOf(Pair(0, 0), Pair(7, 7))
         val request = NewGameRequest(
             id = "game-3",
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             currentPlayer = CellState.BLACK
         )
@@ -84,6 +85,7 @@ class GameFactoryTest {
     fun `should handle empty validMoves`() {
         val request = NewGameRequest(
             id = "game-4",
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             currentPlayer = CellState.BLACK
         )

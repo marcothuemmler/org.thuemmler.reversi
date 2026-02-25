@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import reversi.ai.MoveSelectorStrategy
 import reversi.controller.dto.NewGameRequest
 import reversi.model.CellState
+import reversi.model.Difficulty
 import reversi.model.PlayerType
 import reversi.store.GameStore
 import reversi.websocket.dto.MessageType
@@ -38,6 +39,7 @@ class GameServiceTest {
     fun `createGame should initialize game with human and AI correctly`() = runTest {
         val request = NewGameRequest(
             id = "game1",
+            difficulty = Difficulty.MEDIUM,
             playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
             preferredSide = CellState.BLACK
         )
@@ -55,6 +57,7 @@ class GameServiceTest {
         service.createGame(
             NewGameRequest(
                 id = "game1",
+                difficulty = Difficulty.MEDIUM,
                 playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
                 preferredSide = CellState.BLACK
             )
@@ -70,6 +73,7 @@ class GameServiceTest {
         service.createGame(
             NewGameRequest(
                 id = "game1",
+                difficulty = Difficulty.MEDIUM,
                 playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
                 preferredSide = CellState.BLACK
             )
@@ -88,6 +92,7 @@ class GameServiceTest {
         service.createGame(
             NewGameRequest(
                 id = "game1",
+                difficulty = Difficulty.MEDIUM,
                 playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
                 preferredSide = CellState.BLACK
             )
@@ -102,6 +107,7 @@ class GameServiceTest {
         val game = service.createGame(
             NewGameRequest(
                 id = "game1",
+                difficulty = Difficulty.MEDIUM,
                 playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
                 preferredSide = CellState.BLACK
             )
@@ -118,6 +124,7 @@ class GameServiceTest {
         service.createGame(
             NewGameRequest(
                 id = gameId,
+                difficulty = Difficulty.MEDIUM,
                 playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN, CellState.WHITE to PlayerType.AI),
                 preferredSide = CellState.BLACK
             )

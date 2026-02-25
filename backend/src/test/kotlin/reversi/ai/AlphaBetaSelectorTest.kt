@@ -13,7 +13,7 @@ import kotlin.test.assertNull
 class AlphaBetaSelectorTest {
 
     private val moveEngine = mockk<MoveEngine>(relaxed = true)
-    private val selector = AlphaBetaSelector(moveEngine, baseDepth = 1)
+    private val selector = AlphaBetaSelector(moveEngine)
 
     @Test
     fun `selectMove returns null if no valid moves`() {

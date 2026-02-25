@@ -16,10 +16,7 @@ import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import reversi.controller.dto.MoveRequest
 import reversi.controller.dto.NewGameRequest
-import reversi.model.Board
-import reversi.model.CellState
-import reversi.model.Game
-import reversi.model.PlayerType
+import reversi.model.*
 import reversi.service.GameService
 import reversi.util.UndoManager
 import reversi.websocket.dto.*
@@ -52,7 +49,10 @@ class GameWebSocketHandlerTest {
     fun `handleTextMessage should create game`() {
         val gameId = "game1"
         val newGameRequest = NewGameRequest(
-            id = gameId, playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN), preferredSide = CellState.BLACK
+            id = gameId,
+            difficulty = Difficulty.MEDIUM,
+            playerTypes = mapOf(CellState.BLACK to PlayerType.HUMAN),
+            preferredSide = CellState.BLACK
         )
         val message = CreateGame(
             payload = newGameRequest
