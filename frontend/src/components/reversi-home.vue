@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useHome } from '../composables/Home'
+import { useHome } from '@/composables/Home'
 
 const home = useHome()
 </script>
@@ -20,5 +20,4 @@ const home = useHome()
   </div>
 </template>
 
-<style scoped src="@/styles/Home.css">
-</style>
+<style scoped src="@/styles/reversi-home.css"></style>

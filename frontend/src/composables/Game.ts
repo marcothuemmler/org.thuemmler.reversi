@@ -1,9 +1,9 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { type HistoryState, useRouter } from 'vue-router'
-import clickSound from '../assets/click.mp3'
+import clickSound from '@/assets/click.mp3'
 import type { CellState, GameState, Move, NewGameRequest, Player, PlayerTypes } from '@/types/game'
 import { ClientMessage, type ServerMessage } from '@/types/server'
-import { useWebSocket } from './WebSocket'
+import { useWebSocket } from '@/composables/WebSocket'
 import { getWebSocketUrl } from '@/utils/websocket'
 
 export function useGame() {
@@ -66,13 +66,8 @@ export function useGame() {
 
   onMounted(() => {
     const state = window.history.state
-    const query = router.currentRoute.value.query
-    if (query.id) {
-      sessionConfig.value.id = query.id as string
-    }
     sessionConfig.value.playerTypes = playerTypesFromState(state)
-
-    socket.connect(!query.id)
+    socket.connect(true)
   })
 
   onUnmounted(() => socket?.close())
@@ -97,16 +92,12 @@ export function useGame() {
       const message: ServerMessage<GameState> = JSON.parse(event.data)
       const type = message.type
       switch (type) {
-        case 'CREATE': {
-          router.replace({ path: '/game', query: { id: message.payload.id } })
-          updateBoard(message)
-          break
-        }
         case 'MAKE_MOVE': {
           playSound()
           updateBoard(message)
           break
         }
+        case 'CREATE':
         case 'JOIN':
         case 'UNDO':
         case 'REDO': {
@@ -149,6 +140,10 @@ export function useGame() {
     } else {
       highlightedCells.value.add(moveString)
     }
+  }
+
+  async function goHome() {
+    await router.push('/')
   }
 
   function renderBoard(grid: CellState[][]) {
@@ -196,6 +191,7 @@ export function useGame() {
     isFinished,
     winner,
     createGame,
+    goHome,
     toggleValidMoves,
     undoMove,
     redoMove,

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useGame } from '@/composables/Game'
-import GameOverModal from './GameOverModal.vue'
+import GameOverModal from '@/components/game-over-modal.vue'
+import ExitModal from '@/components/exit-modal.vue'
+import 'primeicons/primeicons.css'
 
 const {
   isFinished,
@@ -11,6 +13,7 @@ const {
   gridSize,
   board,
   cellClass,
+  goHome,
   makeMove,
   pieceTransform,
   toggleValidMoves,
@@ -20,22 +23,34 @@ const {
   winner,
 } = useGame()
 const showModal = ref(false)
+const showExitModal = ref(false)
+
+function requestExit() {
+  showExitModal.value = true
+}
 
 watch(
   () => isFinished.value,
   (finished) => {
     if (finished) setTimeout(() => (showModal.value = true), 500)
-  }
+  },
 )
 
 function restartGame() {
   showModal.value = false
   createGame()
 }
+
+function closeExitModal() {
+  showExitModal.value = false
+}
 </script>
 
 <template>
-  <div id="game">
+  <div class="reversi-game">
+    <div class="exit-button" @click="showExitModal = true">
+      <i class="pi pi-times exit-icon" />
+    </div>
     <p class="score">Black: {{ blackCount }} | White: {{ whiteCount }}</p>
     <div id="board" :style="{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }">
       <div
@@ -58,13 +73,14 @@ function restartGame() {
       </div>
     </div>
     <div class="controls">
-      <button @click="restartGame">Restart Game</button>
-      <button @click="toggleValidMoves">Hint</button>
-      <button @click="undoMove">Undo</button>
-      <button @click="redoMove">Redo</button>
+      <button @click="restartGame"><i class="pi pi-angle-double-left button-icon" />Restart</button>
+      <button @click="toggleValidMoves"><i class="pi pi-star-fill button-icon" />Hint</button>
+      <button @click="undoMove"><i class="pi pi-undo button-icon" />Undo</button>
+      <button @click="redoMove"><i class="pi pi-refresh button-icon" /> Redo</button>
     </div>
-    <GameOverModal :show="showModal" :winner="winner" @restart="restartGame" :result="result" />
+    <GameOverModal :show="showModal" :winner="winner" @restart="restartGame" :result="result" @exit="requestExit" />
+    <ExitModal :show="showExitModal" @yes="goHome" @no="closeExitModal" />
   </div>
 </template>
 
-<style scoped src="@/styles/Game.css"></style>
+<style scoped src="@/styles/reversi-game.css"></style>

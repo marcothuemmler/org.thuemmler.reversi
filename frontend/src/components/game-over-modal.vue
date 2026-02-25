@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { defineProps, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   show: boolean
@@ -10,16 +9,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'restart'): void
+  (e: 'exit'): void
 }>()
 
-const router = useRouter()
+function handleExit() {
+  emit('exit')
+}
 
 function handleRestart() {
   emit('restart')
-}
-
-function goHome() {
-  router.push('/')
 }
 
 watch(
@@ -30,7 +28,7 @@ watch(
     } else {
       removeScrollLock()
     }
-  }
+  },
 )
 
 function removeScrollLock() {
@@ -55,7 +53,7 @@ onUnmounted(() => {
       <p class="winner-text">{{ winner }}</p>
       <div class="buttons">
         <button @click="handleRestart">Restart</button>
-        <button class="destructive" @click="goHome">Exit</button>
+        <button class="destructive" @click="handleExit">Exit</button>
       </div>
     </div>
   </div>
